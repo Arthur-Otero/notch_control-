@@ -1,0 +1,140 @@
+"report" = "Report";
+"work" = "In progress";
+"history" = "History";
+"choose_work" = "Choose work file";
+"choose_history" = "Choose history file";
+"choose_file" = "Choose file";
+"close" = "Close panel";
+"settings" = "Settings";
+"quit" = "Quit NotchControl";
+"open" = "Open report";
+"diagnostics" = "Check integration";
+"copy" = "Copy";
+"resume" = "Resume";
+"resume_busy" = "Resuming…";
+"check_resume" = "Check resume";
+"resume_checking" = "Checking open sessions without creating another tab…";
+"resume_ready" = "The requested conversation was found. Select its session to continue.";
+"rename" = "Rename session";
+"alias" = "Name in NotchControl";
+"save" = "Save";
+"cancel" = "Cancel";
+"move_before" = "Move earlier";
+"move_after" = "Move later";
+"left" = "Left";
+"right" = "Right";
+"position" = "Position";
+"edge" = "Edge";
+"display" = "Display";
+"width" = "Panel width";
+"always_visible" = "Keep icons visible";
+"language" = "Language";
+"start_login" = "Start at login";
+"login_unavailable" = "Start at login requires the built .app bundle.";
+"waiting" = "Waiting for input";
+"working" = "Working";
+"idle" = "Idle";
+"unknown" = "Unknown";
+"approval" = "Approval requested";
+"question" = "Question pending";
+"completed" = "Work completed";
+"notification" = "Notification";
+"sound" = "Sound";
+"preview" = "Preview sound";
+"empty_sessions" = "Open Claude Code, Codex or Cursor Agent in iTerm2. Check integration if your session does not appear.";
+"empty_report" = "This file has no content yet.";
+"reading_report" = "Reading file…";
+"drag_notch" = "Drag the black area to move the notch. Right-click opens settings.";
+"open_notch" = "Open report; drag to move the notch. Right-click opens settings.";
+"missing_report" = "Open a Markdown file to read it with its formatting preserved.";
+"read_failed" = "Unable to read the file. The last version remains available.";
+"file_unavailable" = "File unavailable. Choose another path.";
+"connecting" = "Connecting to iTerm2…";
+"connected" = "Integration connected";
+"disconnected" = "iTerm2 disconnected. Check integration.";
+"starting" = "Preparing integration…";
+"ready" = "Terminal connected";
+"closed" = "Terminal preserved in iTerm2";
+"python_unavailable" = "Python unavailable. Use the project launcher to prepare the SDK.";
+"sdk_missing" = "SDK missing. Use the project launcher to prepare integration.";
+"connection_unavailable" = "Open iTerm2, enable its API in settings, and authorize the script when asked.";
+"local_transport_unavailable" = "The local bridge could not connect. Check app permissions.";
+"state_source_unavailable" = "State source unavailable. Check hooks.";
+"api_operation_failed" = "Operation failed. Refresh integration before trying again.";
+"operation_timeout" = "The operation timed out. Input or tab creation will not be retried automatically.";
+"resize_split_unavailable" = "Split tab: scroll to view the original grid.";
+"resize_fullscreen_unavailable" = "Fullscreen: scroll to view the original grid.";
+"resize_ownership_lost" = "Size was changed in iTerm2 and will be preserved.";
+"choose_session" = "Choose the open session to resume";
+"resume_failed" = "Unable to resume. Check the directory, executable, and integration.";
+"resume_uncertain" = "Resume result is uncertain. Refresh inventory to avoid another tab.";
+"session_closed" = "This session ended. Choose another session.";
+"integration" = "Integration";
+"hooks" = "Configure agent states";
+"reconnect" = "Reconnect";
+"hook_trust" = "Codex requires hook review in /hooks. Ambiguous identity keeps state unknown.";
+"prepare_hooks" = "Prepare configuration";
+"install_hooks" = "Install hooks";
+"remove_hooks" = "Remove NotchControl hooks";
+"notification_denied" = "Notifications denied. Enable in System Settings if desired.";
+"paste_title" = "Paste multiple lines?";
+"paste_message" = "Paste mode has not been confirmed for this terminal. Line breaks may submit commands.";
+"paste" = "Paste";
+"terminal_label" = "Interactive terminal of selected session";
+"jump_end" = "Jump to end";
+"resize_label" = "Resize or drag to the edge to close";
+"file_read_only" = "Read only · updates automatically";
+"hooks_prepared" = "Configuration prepared in .notchcontrol. Choose the configuration file to install.";
+"hooks_installed" = "Hooks installed. Review trust in the CLI and verify new sessions.";
+"hooks_removed" = "Recognized NotchControl entries removed; third-party entries preserved.";
+"hooks_failed" = "Configuration changed or could not be written. Review the file and try again.";
+"font" = "Terminal";
+"details" = "Session details";
+"edit" = "Edit";
+"api" = "iTerm2 API";
+"install_iterm" = "Install and open iTerm2 to access sessions.";
+"enable_api" = "In iTerm2, open Settings > General > Magic and enable Python API. Authorize the script when connecting.";
+"install_cli" = "Install this CLI on your Mac. Desktop/IDE sessions are not monitored.";
+"older_history" = "Earlier history";
+"prompt_to" = "Message";
+"prompt_label" = "Prompt for the selected agent";
+"send" = "Send";
+"send_hint" = "Return sends · Shift+Return adds a line";
+"keys" = "Terminal keys";
+"key_enter" = "Enter";
+"key_escape" = "Escape";
+"key_up" = "Up arrow";
+"key_down" = "Down arrow";
+"key_tab" = "Tab";
+"key_shift_tab" = "Shift+Tab";
+"key_interrupt" = "Interrupt (Ctrl+C)";
+"composer_unavailable" = "Connecting to the terminal…";
+"dismiss" = "Dismiss";
+
+"reader_title" = "Your documents, here";
+
+"choose_markdown" = "Open Markdown";
+
+"change_file" = "Change file";
+
+"markdown_document" = "Markdown document";
+
+"usage_five_hour" = "Current session · 5h";
+
+"usage_seven_day" = "Week";
+
+"usage_cursor" = "Cursor models";
+
+"usage_other_models" = "Other models";
+
+"usage_unavailable" = "Usage unavailable";
+
+"usage_missing_hint" = "The CLI is not reporting account limits.";
+
+"usage_source" = "Account usage · reported by CLI";
+
+"usage_used" = "used";
+
+"usage_resets" = "Resets:";
+
+"usage_result" = "Response completed";

@@ -1,0 +1,16 @@
+.DS_Store
+.build/
+.swiftpm/
+build/
+.venv/
+__pycache__/
+*.pyc
+.proof/
+.notchcontrol/
+.notecontrol/
+*.xcuserstate
+xcuserdata/
+.env
+.env.*
+!.env.example
+premium-audit.json

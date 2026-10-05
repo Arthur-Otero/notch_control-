@@ -1,0 +1,140 @@
+"report" = "Relatório";
+"work" = "Em andamento";
+"history" = "Histórico";
+"choose_work" = "Escolher arquivo de trabalho";
+"choose_history" = "Escolher histórico";
+"choose_file" = "Escolher arquivo";
+"close" = "Fechar painel";
+"settings" = "Preferências";
+"quit" = "Sair do NotchControl";
+"open" = "Abrir relatório";
+"diagnostics" = "Verificar integração";
+"copy" = "Copiar";
+"resume" = "Retomar";
+"resume_busy" = "Retomando…";
+"check_resume" = "Verificar retomada";
+"resume_checking" = "Verificando sessões abertas sem criar outra aba…";
+"resume_ready" = "A conversa solicitada foi encontrada. Selecione a sessão para continuar.";
+"rename" = "Renomear sessão";
+"alias" = "Nome no NotchControl";
+"save" = "Salvar";
+"cancel" = "Cancelar";
+"move_before" = "Mover antes";
+"move_after" = "Mover depois";
+"left" = "Esquerda";
+"right" = "Direita";
+"position" = "Posição";
+"edge" = "Borda";
+"display" = "Monitor";
+"width" = "Largura do painel";
+"always_visible" = "Manter ícones visíveis";
+"language" = "Idioma";
+"start_login" = "Iniciar com o Mac";
+"login_unavailable" = "Início com o Mac exige abrir o aplicativo .app compilado.";
+"waiting" = "Esperando resposta";
+"working" = "Trabalhando";
+"idle" = "Parado";
+"unknown" = "Desconhecido";
+"approval" = "Aprovação pendente";
+"question" = "Pergunta pendente";
+"completed" = "Trabalho concluído";
+"notification" = "Notificação";
+"sound" = "Som";
+"preview" = "Ouvir prévia";
+"empty_sessions" = "Abra Claude Code, Codex ou Cursor Agent no iTerm2. Verifique a integração se a sessão não aparecer.";
+"empty_report" = "Este arquivo ainda não tem conteúdo.";
+"reading_report" = "Lendo arquivo…";
+"drag_notch" = "Arraste a área preta para mover o notch. Clique secundário abre as preferências.";
+"open_notch" = "Abrir relatório; arraste para mover o notch. Clique secundário abre as preferências.";
+"missing_report" = "Abra um arquivo Markdown para ler com a formatação preservada.";
+"read_failed" = "Não foi possível ler o arquivo. A última versão continua disponível.";
+"file_unavailable" = "Arquivo indisponível. Escolha outro caminho.";
+"connecting" = "Conectando ao iTerm2…";
+"connected" = "Integração conectada";
+"disconnected" = "iTerm2 desconectado. Verifique a integração.";
+"starting" = "Preparando integração…";
+"ready" = "Terminal conectado";
+"closed" = "Terminal preservado no iTerm2";
+"python_unavailable" = "Python indisponível. Use o launcher do projeto para preparar o SDK.";
+"sdk_missing" = "SDK ausente. Use o launcher do projeto para preparar a integração.";
+"connection_unavailable" = "Abra o iTerm2, habilite a API nas preferências e autorize o script quando solicitado.";
+"local_transport_unavailable" = "A ponte local não pôde conectar. Confira as permissões do aplicativo.";
+"state_source_unavailable" = "Fonte de estados indisponível. Verifique os hooks.";
+"api_operation_failed" = "A operação falhou. Atualize a integração antes de tentar novamente.";
+"operation_timeout" = "A operação não respondeu no prazo. Entrada ou criação de aba não será repetida automaticamente.";
+"resize_split_unavailable" = "Aba dividida: use a rolagem para ver a grade original.";
+"resize_fullscreen_unavailable" = "Fullscreen: use a rolagem para ver a grade original.";
+"resize_ownership_lost" = "O tamanho foi alterado no iTerm2 e será preservado.";
+"choose_session" = "Escolha a sessão aberta para retomar";
+"resume_failed" = "Não foi possível retomar. Verifique diretório, executável e integração.";
+"resume_uncertain" = "Resultado da retomada incerto. Atualize o inventário para evitar outra aba.";
+"session_closed" = "Esta sessão encerrou. Escolha outra bolinha.";
+"integration" = "Integração";
+"hooks" = "Configurar estados dos agentes";
+"reconnect" = "Reconectar";
+"hook_trust" = "Codex exige revisar os hooks em /hooks. Identidade ambígua mantém o estado desconhecido.";
+"prepare_hooks" = "Preparar configuração";
+"install_hooks" = "Instalar hooks";
+"remove_hooks" = "Remover hooks do NotchControl";
+"notification_denied" = "Notificações recusadas. Habilite em Ajustes do Sistema se desejar.";
+"paste_title" = "Colar várias linhas?";
+"paste_message" = "O modo de colagem deste terminal não foi confirmado. Quebras de linha podem enviar comandos.";
+"paste" = "Colar";
+"terminal_label" = "Terminal interativo da sessão selecionada";
+"jump_end" = "Voltar ao fim";
+"resize_label" = "Redimensionar ou arrastar até a borda para fechar";
+"file_read_only" = "Somente leitura · atualizado automaticamente";
+"hooks_prepared" = "Configuração preparada na pasta .notchcontrol. Escolha o arquivo de configuração para instalar.";
+"hooks_installed" = "Hooks instalados. Revise a confiança no CLI e verifique sessões novas.";
+"hooks_removed" = "Itens reconhecidos do NotchControl removidos; terceiros preservados.";
+"hooks_failed" = "A configuração mudou ou não pôde ser gravada. Revise o arquivo e tente novamente.";
+"font" = "Terminal";
+"details" = "Detalhes da sessão";
+"edit" = "Editar";
+"api" = "API do iTerm2";
+"install_iterm" = "Instale e abra o iTerm2 para acessar suas sessões.";
+"enable_api" = "No iTerm2, abra Settings > General > Magic e habilite Python API. Autorize o script ao conectar.";
+"install_cli" = "Instale este CLI no Mac. Sessões Desktop/IDE não são monitoradas.";
+"older_history" = "Histórico anterior";
+"prompt_to" = "Enviar para";
+"prompt_label" = "Prompt para o agente selecionado";
+"send" = "Enviar";
+"send_hint" = "Return envia · Shift+Return quebra a linha";
+"keys" = "Teclas do terminal";
+"key_enter" = "Enter";
+"key_escape" = "Esc";
+"key_up" = "Seta para cima";
+"key_down" = "Seta para baixo";
+"key_tab" = "Tab";
+"key_shift_tab" = "Shift+Tab";
+"key_interrupt" = "Interromper (Ctrl+C)";
+"composer_unavailable" = "Conectando ao terminal…";
+"dismiss" = "Dispensar";
+
+"reader_title" = "Seus documentos, aqui";
+
+"choose_markdown" = "Abrir Markdown";
+
+"change_file" = "Trocar arquivo";
+
+"markdown_document" = "Documento Markdown";
+
+"usage_five_hour" = "Sessão atual · 5h";
+
+"usage_seven_day" = "Semana";
+
+"usage_cursor" = "Modelos Cursor";
+
+"usage_other_models" = "Outros modelos";
+
+"usage_unavailable" = "Uso indisponível";
+
+"usage_missing_hint" = "O CLI não está informando os limites da conta.";
+
+"usage_source" = "Uso da conta · informado pelo CLI";
+
+"usage_used" = "utilizado";
+
+"usage_resets" = "Renova:";
+
+"usage_result" = "Resposta concluída";

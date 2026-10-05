@@ -1,0 +1,90 @@
+# Arquitetura do NotchControl
+
+Aplicativo nativo macOS 15+, organizado em módulos SwiftPM e um helper Python local. O fluxo atual mostra estados no notch, abre sessões no iTerm2 e lê Markdown em um painel separado. A integração completa ainda está em desenvolvimento.
+
+## Componentes
+
+| Componente | Responsabilidade |
+|---|---|
+| `NotchControl` | Coordenação em `AppStore`, janelas AppKit, menus, preferências, localização e efeitos |
+| `NotchControlCore` | Registro e identidade de sessões, estados, geometria, arquivos, parser de retomada e alertas |
+| `NotchControlUI` | Gateway, tokens, componentes de notch, leitor Markdown e renderer de terminal experimental |
+| `NotchControlProof` | Harness nativo para exercitar a integração sem mudar o fluxo do produto |
+| `helper/` | API oficial iTerm2, descoberta de processos, classificação da tela, limites e hooks |
+| `scripts/` | Preparação do ambiente, build, execução, diagnóstico e configuração reversível |
+
+O núcleo não depende de AppKit. A aplicação decide ações e efeitos; o helper adapta o protocolo externo. Processos dos agentes pertencem ao iTerm2 e continuam vivos ao fechar o app.
+
+## Transporte e recuperação
+
+```mermaid
+flowchart LR
+    App[App e notch] --> Core[Registro de sessões]
+    App --> Reader[Leitor Markdown]
+    App <--> Gateway[TerminalGateway]
+    Gateway <--> Helper[Helper Python local]
+    Helper <--> iTerm[iTerm2 Python API]
+    Helper --> Screen[Estado e limites pela tela]
+    Screen --> Core
+```
+
+O app inicia o helper com o Python de `.venv`. O transporte principal é um socket Unix com permissão 0600 em um diretório temporário 0700. O bootstrap é enviado pelo stdout; o harness e os testes também usam pipes com o mesmo protocolo JSON Lines.
+
+Mensagens carregam versão, conexão, request ID e identidade/geração do destino. Conexões novas exigem reconciliação antes de liberar operações. Comandos têm timeout de dez segundos. Leituras podem ser repetidas; input, resize e criação de abas com resultado incerto não são reenviados automaticamente.
+
+O inventário é atualizado a cada três segundos e os estados são consultados aproximadamente a cada segundo. `ReconnectPolicy` aumenta a espera de dois em dois segundos até trinta, sem limite de tentativas; a abertura do iTerm2 reinicia a tentativa. Essa recuperação não encerra nem reinicia os agentes.
+
+## Identidade e estados
+
+Terminal, instância de processo e conversa são identidades diferentes. Cada bolinha representa uma instância interativa, identificada por terminal, provedor e geração do processo. Coincidência de projeto ou título não basta.
+
+A descoberta usa linha de comando, PID, TTY e início do processo. Eventos estruturados precisam de uma associação única com a instância; eventos tardios, de subagentes ou com identidade ambígua são descartados.
+
+`screen_status.py` lê o compositor de Claude Code, Codex e Cursor Agent. `account_usage.py` extrai somente limites reconhecidos no rodapé. Ausência de informação não vira sucesso, aprovação ou percentual inventado. O comportamento visual dos estados está em [status.md](status.md).
+
+O uso pertence à conta e pode ser compartilhado por várias sessões. Mensagens de uso validam terminal/geração, IDs e percentuais entre 0 e 100. Leituras expiram em cinco minutos e não são persistidas.
+
+## Operações de terminal
+
+O produto chama `reveal` para trazer a aba correta do iTerm2 à frente. O gateway também mantém screen/history/input/resize para o harness e os experimentos existentes.
+
+Input exige seleção, conexão e geração válidas; broadcast é suprimido. A restauração experimental compara identidade, layout e dimensões. Modos completos de teclado/colagem e ownership de resize por eventos ainda precisam de validação real. Splits/fullscreen não recebem resize experimental.
+
+Retomada mantém parser e coordenação no núcleo, mas não possui ação no leitor atual. Comandos de Markdown são texto. Resultado ambíguo de criação exige reconciliação antes de permitir outra tentativa.
+
+## Arquivos e dados locais
+
+`ReportFileReader` lê UTF-8, estabiliza atualizações e observa substituição atômica. O leitor conserva o último conteúdo válido durante atualização ou erro; uma troca de arquivo reinicia a posição de leitura. `MarkdownRenderer` usa Foundation e AppKit, sem WebView.
+
+- `.notchcontrol/preferences.json`: posição, idioma, arquivos e alertas.
+- `.notchcontrol/sessions.json`: identidade, ordem e aliases; sem títulos, estados transitórios ou números de sessão.
+- `.notchcontrol/events/`: metadata sanitizada de hooks.
+- `.notchcontrol/hook-plan-*.json`: plano privado de configuração, incluindo o conteúdo anterior necessário para detectar concorrência.
+- `.proof/`: ambiente e códigos de diagnóstico.
+
+A tela é usada em memória para classificação e apresentação experimental. Diagnósticos não arquivam prompts, transcrições, credenciais ou decisões de aprovação. Arquivos de estado e planos são privados e ignorados pelo Git.
+
+Hooks preservam integrações de terceiros. Aplicação e remoção exigem que o arquivo atual corresponda ao plano preparado; configurações concorrentes ou links simbólicos são recusados. A confiança é concedida pelo fluxo oficial do CLI.
+
+## Donos dos componentes nativos
+
+| Capability | Canonical owner | Source of truth | Allowed variants | Verification |
+|---|---|---|---|---|
+| Tokens | `DesignTokens` gerado | `DESIGN.md` | Escuro nativo | `generate-design.py --check` |
+| Select/Listbox | Pickers SwiftUI/AppKit em `SettingsView` | Controles nativos | Idioma, borda, monitor e som | Teclado/popup real pendentes |
+| Form | `SettingsView` e `AppStore` | Preferências e ações do app | Configuração revisável | Testes de configuração e build |
+| Scrollbar | `NSScrollView` e `ScrollView` | Layout nativo | Notch em overflow e leitor | Testes de apresentação; janela real pendente |
+| Toast | `noticeKey` e notificações de sistema | Catálogos e `AlertTracker` | Feedback persistente e eventos deduplicados | `AlertTests`; sistema real pendente |
+| Janelas | `WindowCoordinator`, `PanelLayout` e `RailDrag` | Geometria do núcleo | Não modal; ambas as bordas | Testes de geometria/arraste; Spaces pendente |
+| Markdown | `ReportPanel`, `ReportReader` e `MarkdownReader` | Leitor somente leitura | Trabalho e histórico | Testes de arquivos e renderização |
+| Terminal experimental | `TerminalGateway` e `TerminalCanvas` | Protocolo local | Harness da integração | Fixtures; modos/input reais pendentes |
+
+Painel e notch usam janelas distintas coordenadas; o notch acompanha a borda interna durante abertura e fechamento. Hover e alertas não capturam foco. Movimento reduzido desativa transições. PT-BR e inglês compartilham os mesmos componentes e catálogos.
+
+## Validação e trabalho pendente
+
+`scripts/test.sh` cobre o núcleo, componentes nativos, subprocessos e arquivos temporários. Fixtures e tipos do SDK instalado não comprovam a conexão completa com sessões reais.
+
+Descoberta e leitura de estados já foram exercitadas com iTerm2 3.7.3 e CLIs locais. Permanecem pendentes a associação completa dos hooks, os modos experimentais de terminal, VoiceOver, Spaces, cenários com vários monitores e execução Intel. `watch_status` ainda precisa de isolamento/timeout por sessão para que uma leitura travada não bloqueie o conjunto.
+
+A documentação pública de instalação, diagnóstico e limitações está no [README](../README.md). Novas integrações devem demonstrar identidade e comportamento observável antes de ampliar o suporte anunciado.
