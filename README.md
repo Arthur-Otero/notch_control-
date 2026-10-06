@@ -14,6 +14,7 @@ Inspirado no [CodeNotch, de vinzdg](https://github.com/vinzdg/codenotch), especi
 - Balão com nome, projeto, estado e limites de uso quando o rodapé do CLI fornece essa informação.
 - Notch nas bordas esquerda ou direita, com posição, monitor, aliases e ordem das sessões persistidos.
 - Painel de Markdown somente leitura, com abas de trabalho e histórico, seleção, cópia e atualização automática.
+- Modo opcional com uma bolinha por entrada do arquivo de trabalho, retomando no iTerm2 as sessões com terminal fechado.
 - Preferências em português e inglês, sons e notificações configuráveis.
 - Diagnóstico da integração e reconexão automática quando o iTerm2 fica disponível.
 
@@ -85,6 +86,26 @@ O painel renderiza títulos, listas, checklists, citações, código, tabelas e 
 
 Feche pelo ícone de documento, botão de fechar, `⌘W` ou arrastando a borda interna. Clicar fora mantém o painel aberto. Comandos escritos no Markdown são exibidos como texto; retomada de conversas pelo painel ainda não está disponível.
 
+### Entradas do arquivo de trabalho no notch
+
+Com um arquivo de trabalho escolhido, ligue **Preferências → Relatório → Mostrar entradas do arquivo de trabalho no notch**. O notch passa a mostrar uma bolinha por entrada `##` do arquivo, na ordem dele. Cada entrada lista suas sessões com o comando de retomada, a mais recente primeiro:
+
+```markdown
+## 2026-10-06 08:00 — #123 Paywall novo
+- Sessões:
+  - 2026-10-06 · Opus 5.5
+    cd /caminho/do/projeto && claude -r 00000000-0000-0000-0000-000000000001
+- Status: Lib pronta; falta integrar no app.
+```
+
+| Entrada | Bolinha | Clique |
+|---|---|---|
+| Uma das sessões está aberta no iTerm2 | Igual à da sessão, com estado, `!` e alertas | Traz a aba para a frente |
+| Nenhuma sessão aberta | Logo do agente na cor da trilha | Retoma a sessão mais recente numa aba nova |
+| Sem sessões | Documento na cor da trilha | Abre o painel do arquivo de trabalho |
+
+Sessões abertas que nenhuma entrada mostra aparecem abaixo de um separador. O balão de uma entrada mostra o título, o estado, o `Status` e a pasta. Para ligar a sessão aberta à entrada, o app usa o registro de sessões do Claude Code e, nos outros CLIs, o ID passado na retomada (`codex resume <id>`, `agent --resume <id>`).
+
 ### Hooks opcionais
 
 A leitura do estado pela tela funciona sem instalar hooks. Para experimentar eventos estruturados de Claude Code ou Codex:
@@ -151,6 +172,7 @@ Diagnósticos locais ficam em `.proof/diagnostics.jsonl`; preferências, aliases
 - Classificação de estado e limites depende do formato da tela de cada versão do CLI. Listas muito longas de agentes em segundo plano podem esconder o compositor.
 - Validação completa de associação entre múltiplas sessões, hooks, foco, VoiceOver, Spaces e monitores ainda está pendente.
 - O terminal interativo dentro do painel permanece como experimento no harness; o fluxo atual abre a sessão no iTerm2.
+- No modo do arquivo de trabalho, uma sessão de Codex ou Cursor Agent aberta sem `resume` só é ligada à entrada pelos hooks. O registro de sessões do Claude Code é um formato interno e pode mudar entre versões.
 - Não há instalador, DMG, notarização ou atualização automática.
 
 ## Créditos e atribuições
