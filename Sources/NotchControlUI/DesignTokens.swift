@@ -9,6 +9,7 @@ public enum DesignTokens {
     public static let text = color(0xF3F4F6)
     public static let muted = color(0xB6BAC4)
     public static let danger = color(0xFF6B73)
+    public static let warning = color(0xFFC94D)
     public static let unknown = color(0x969CAA)
     public static let focus = color(0x88B8FF)
     public static let notch = color(0x000000)

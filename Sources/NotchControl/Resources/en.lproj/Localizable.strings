@@ -145,3 +145,4 @@
 "resume_hint" = "Click to resume the newest session in iTerm2.";
 "no_session" = "No session";
 "note_hint" = "Click to open the work file.";
+"context" = "Context";

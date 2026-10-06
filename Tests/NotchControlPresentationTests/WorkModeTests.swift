@@ -61,9 +61,16 @@ final class WorkModeTests: XCTestCase {
         XCTAssertEqual(store.railCounts.dividers, 2)
         XCTAssertEqual(store.railHeight(available: 2000), NotchMetrics.contentHeight(sessions: 4, dividers: 2))
 
+        let claude = try XCTUnwrap(openSession)
+        store.gateway.installContextFixture(.init(connection: "c", terminal: claude.terminal, usedPercent: 45))
+        store.gateway.installContextFixture(.init(connection: "c", terminal: .init(id: "codex-tab", generation: "old"), usedPercent: 90))
+        XCTAssertEqual(store.contextPercent(claude), 45)
+        XCTAssertNil(store.registry.sessions.first { $0.provider == .codex }.flatMap(store.contextPercent), "Another generation's reading")
+
         for language in [InterfaceLanguage.portuguese, .english] {
             for (name, session, item) in [("open", openSession, openItem), ("closed", nil, closedItem), ("note", nil, noteItem)] {
-                let content = SessionDetails(session: session, item: item, windows: [], messages: Messages(language: language))
+                let content = SessionDetails(session: session, item: item, context: session.flatMap(store.contextPercent),
+                                             windows: [], messages: Messages(language: language))
                 let host = NSHostingView(rootView: content)
                 XCTAssertEqual(host.fittingSize.width, DesignTokens.tooltipWidth, accuracy: 1, name)
                 XCTAssertGreaterThan(host.fittingSize.height, 100, name)

@@ -145,3 +145,4 @@
 "resume_hint" = "Clique para retomar a sessão mais recente no iTerm2.";
 "no_session" = "Sem sessão";
 "note_hint" = "Clique para abrir o arquivo de trabalho.";
+"context" = "Contexto";

@@ -12,6 +12,7 @@ Inspirado no [CodeNotch, de vinzdg](https://github.com/vinzdg/codenotch), especi
 - Uma bolinha por sessão, com o logo do provedor e indicação de trabalho, resultado ou decisão pendente.
 - Clique na bolinha para abrir a aba correspondente no iTerm2.
 - Balão com nome, projeto, estado e limites de uso quando o rodapé do CLI fornece essa informação.
+- Barra fina abaixo da bolinha com o contexto ocupado pela sessão, quando o rodapé o informa.
 - Notch nas bordas esquerda ou direita, com posição, monitor, aliases e ordem das sessões persistidos.
 - Painel de Markdown somente leitura, com abas de trabalho e histórico, seleção, cópia e atualização automática.
 - Modo opcional com uma bolinha por entrada do arquivo de trabalho, retomando no iTerm2 as sessões com terminal fechado.
@@ -159,7 +160,7 @@ Também é possível executar:
 ```
 
 - **Nenhuma sessão aparece:** confirme que o CLI está em uma aba local do iTerm2, que a API está habilitada e que o helper foi autorizado.
-- **Uso indisponível no balão:** o formato do rodapé pode não fornecer limites reconhecíveis. O app não estima uma porcentagem.
+- **Uso indisponível no balão:** o formato do rodapé pode não fornecer limites reconhecíveis. O app não estima uma porcentagem. No Claude Code, a statusline precisa escrever `5h 42%` e `7d 13%` ou, para incluir a renovação, `18:00 42%` e `13/10 13%` no começo da linha ou logo depois de `·` ou `|`. O contexto vem de `ctx 12%` ou `ctx:12%`; no Codex, de `Context 14% used` ou `86% context left`.
 - **Erro de compilação:** confira a seleção do Xcode e a versão do Swift.
 - **Falha após mover o projeto:** encerre o app e execute novamente `bash scripts/run-app.sh`. Se o cache ainda apontar para o caminho antigo, remova `.build/` e compile novamente.
 - **Falha ao abrir o bundle pelo Finder:** use o launcher ou `scripts/run-app.sh`, que prepara o ambiente e inicia o executável diretamente.

@@ -79,6 +79,10 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
         let dividers = rows.filter { if case .divider = $0 { true } else { false } }.count
         return (rows.count - dividers, dividers)
     }
+    /// Context share of the session's own terminal generation, if its status bar reports it.
+    func contextPercent(_ session: AgentSession) -> Double? {
+        gateway.contextUsage[session.terminal.id].flatMap { $0.terminal == session.terminal ? $0.usedPercent : nil }
+    }
     func railHeight(available: CGFloat) -> CGFloat {
         let counts = railCounts
         return NotchMetrics.height(sessions: counts.cells, dividers: counts.dividers, available: available)

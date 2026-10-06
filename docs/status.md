@@ -14,6 +14,8 @@ Clicar na bolinha traz a aba dessa sessão para a frente. O painel não copia o 
 | Nada | Parado no prompt, e você já clicou na bolinha ou o iTerm2 está na frente nessa aba. | Pode recolher. |
 | Logo apagado | A tela não foi reconhecida. O app não inventa um estado. | Pode recolher. |
 
+Abaixo da bolinha, uma barra fina mostra quanto do contexto a sessão ocupa: verde abaixo de 30%, amarela abaixo de 70% e vermelha a partir de 70%. Ela só aparece quando o rodapé do CLI informa o contexto, e o balão repete o percentual.
+
 Com **Mostrar entradas do arquivo de trabalho no notch** ligado, cada bolinha é uma entrada do `work.md`:
 
 | O que você vê | Significado | Clique |

@@ -57,6 +57,7 @@ private struct ProofCommand: Encodable {
 public final class TerminalGateway: ObservableObject {
     @Published public private(set) var terminals: [TerminalDescriptor] = []
     @Published public private(set) var accountUsage: [String: AccountUsageReading] = [:]
+    @Published public private(set) var contextUsage: [String: ContextUsageReading] = [:]
     @Published public private(set) var selectedID: String?
     @Published public private(set) var snapshot: TerminalSnapshot?
     @Published public private(set) var status = "Preparando integração…"
@@ -155,6 +156,9 @@ public final class TerminalGateway: ObservableObject {
             record("python_unavailable")
         }
     }
+
+    /// Context reading for presentation tests without a bridge or iTerm2.
+    func installContextFixture(_ reading: ContextUsageReading) { contextUsage[reading.terminal.id] = reading }
 
     /// Estado de um terminal já selecionado, para testes de apresentação sem ponte nem iTerm2.
     func installFixture(terminal: TerminalDescriptor, snapshot: TerminalSnapshot, history: [TerminalLine] = []) {
@@ -260,6 +264,7 @@ public final class TerminalGateway: ObservableObject {
         docked = false
         terminals = []
         accountUsage = [:]
+        contextUsage = [:]
         history = []
         historyHasMore = false
         historyFirstLine = nil
@@ -348,6 +353,11 @@ public final class TerminalGateway: ObservableObject {
                   reading.isValid, reading.connection == session.connection,
                   terminals.contains(where: { $0.identity == reading.terminal && $0.local && $0.identityConfirmed }) else { return }
             accountUsage[reading.terminal.id] = reading
+        case "context":
+            guard let reading = try? JSONDecoder().decode(ContextUsageReading.self, from: data),
+                  reading.isValid, reading.connection == session.connection,
+                  terminals.contains(where: { $0.identity == reading.terminal && $0.local && $0.identityConfirmed }) else { return }
+            contextUsage[reading.terminal.id] = reading.usedPercent == nil ? nil : reading
         case "socket_ready":
             connectLocalSocket()
         case "evidence":
@@ -380,6 +390,7 @@ public final class TerminalGateway: ObservableObject {
             session.reconcile(connection: connection, terminals: terminals.map(\.identity))
             self.terminals = terminals
             accountUsage = accountUsage.filter { _, reading in terminals.contains { $0.identity == reading.terminal } }
+            contextUsage = contextUsage.filter { _, reading in terminals.contains { $0.identity == reading.terminal } }
             if session.selected?.id != selectedID {
                 selectedID = nil
                 snapshot = nil

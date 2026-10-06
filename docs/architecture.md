@@ -44,7 +44,7 @@ O inventário também traz a conversa de cada instância (`conversation_id.py`).
 
 No modo do arquivo de trabalho, `ReportDocument.entries` separa o `work.md` por `##`, e `WorkBoard` compõe as entradas com as sessões abertas por provedor e conversa: a sessão aberta mais recente da entrada, a retomada da mais recente quando nenhuma está aberta, ou uma nota sem sessão. Sessões abertas que nenhum item mostra ficam à parte, para que uma decisão pendente nunca fique escondida.
 
-`screen_status.py` lê o compositor de Claude Code, Codex e Cursor Agent. `account_usage.py` extrai somente limites reconhecidos no rodapé. Ausência de informação não vira sucesso, aprovação ou percentual inventado. O comportamento visual dos estados está em [status.md](status.md).
+`screen_status.py` lê o compositor de Claude Code, Codex e Cursor Agent. `account_usage.py` extrai somente limites reconhecidos no rodapé, e `context_usage.py`, do mesmo rodapé, o contexto ocupado pela sessão. Ausência de informação não vira sucesso, aprovação ou percentual inventado. O comportamento visual dos estados está em [status.md](status.md).
 
 O uso pertence à conta e pode ser compartilhado por várias sessões. Mensagens de uso validam terminal/geração, IDs e percentuais entre 0 e 100. Leituras expiram em cinco minutos e não são persistidas.
 

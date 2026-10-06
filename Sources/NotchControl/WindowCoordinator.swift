@@ -176,7 +176,8 @@ final class WindowCoordinator {
             store.gateway.accountUsage[session.terminal.id].flatMap { $0.terminal == session.terminal ? $0.windows : nil }
         } ?? []
         let left = store.preferences.edge == .left
-        let host = NSHostingView(rootView: SessionDetails(session: session, item: item, windows: windows, messages: store.messages, tailOnLeft: left))
+        let host = NSHostingView(rootView: SessionDetails(session: session, item: item, context: session.flatMap(store.contextPercent),
+                                                          windows: windows, messages: store.messages, tailOnLeft: left))
         let height = min(host.fittingSize.height, area.height)
         let width = DesignTokens.tooltipWidth
         let y = min(max(area.minY, tooltipAnchor.y - height / 2), area.maxY - height)

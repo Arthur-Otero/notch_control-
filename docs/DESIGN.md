@@ -11,6 +11,7 @@ colors:
   text: "#F3F4F6"
   muted: "#B6BAC4"
   danger: "#FF6B73"
+  warning: "#FFC94D"
   unknown: "#969CAA"
   focus: "#88B8FF"
   notch: "#000000"
@@ -110,6 +111,8 @@ Este documento define intenção visual e tokens. O frontmatter alimenta `script
 ## Colors
 
 Notch e balão usam preto puro, logos brancos e trilha neutra `ringTrack`. `activity` é trabalho ou resultado não visto; `danger` acompanha `!` para decisão; `unknown` reduz a presença da sessão sem inventar estado. O significado completo está em [status.md](status.md).
+
+A barra de contexto, abaixo da bolinha, usa `activity` abaixo de 30%, `warning` abaixo de 70% e `danger` a partir de 70% do contexto da sessão. O anel continua dizendo o que o agente faz; a barra, quanto do contexto ele ocupa.
 
 Texto principal usa `text`, contexto usa `muted` e foco usa `focus`. Forma, texto e nome acessível complementam as cores. A aparência atual é escura; contraste e transparência seguem os recursos do macOS.
 

@@ -85,7 +85,8 @@ struct RailView: View {
         let cell = Group {
             if let session {
                 SessionButton(session: session, selected: store.content == session.id, reducedMotion: reducedMotion, messages: m,
-                    label: item.entry.title, onFocus: { focused in tooltip(focused ? item.id : nil) }) { store.choose(item) }
+                    label: item.entry.title, context: store.contextPercent(session),
+                    onFocus: { focused in tooltip(focused ? item.id : nil) }) { store.choose(item) }
             } else {
                 WorkButton(item: item, messages: m, onFocus: { focused in tooltip(focused ? item.id : nil) }) { store.choose(item) }
             }
@@ -95,7 +96,7 @@ struct RailView: View {
     }
     @ViewBuilder private func sessionRow(_ session: AgentSession) -> some View {
         let cell = SessionButton(session: session, selected: store.content == session.id, reducedMotion: reducedMotion, messages: m,
-            onFocus: { focused in tooltip(focused ? session.id : nil) }) { store.choose(session.id) }
+            context: store.contextPercent(session), onFocus: { focused in tooltip(focused ? session.id : nil) }) { store.choose(session.id) }
             .onHover { inside in tooltip(inside ? session.id : nil) }
         if preview { cell }
         else {
@@ -155,6 +156,7 @@ private struct SessionButton: View {
     let messages: Messages
     /// Work entry title read in place of the terminal title.
     var label: String? = nil
+    var context: Double? = nil
     let onFocus: (Bool) -> Void
     let action: () -> Void
     @FocusState private var focused: Bool
@@ -186,7 +188,36 @@ private struct SessionButton: View {
                         .frame(width: 16, height: 16).background(DesignTokens.danger, in: Circle()).offset(x: 3, y: -3)
                 }
              }
-        }.buttonStyle(.plain).focused($focused).onHover { hovered = $0 }.onChange(of: focused) { _, value in onFocus(value) }.accessibilityLabel("\(session.provider.displayName), \(label ?? session.title), \(messages.text(session.state.rawValue))")
+             // Sits in the gap below the circle, so the notch keeps its height.
+             .overlay(alignment: .bottom) {
+                if let context { ContextBar(usedPercent: context).frame(width: 28, height: 3).offset(y: 8) }
+             }
+        }.buttonStyle(.plain).focused($focused).onHover { hovered = $0 }.onChange(of: focused) { _, value in onFocus(value) }.accessibilityLabel(accessibilityText)
+    }
+    private var accessibilityText: String {
+        let text = "\(session.provider.displayName), \(label ?? session.title), \(messages.text(session.state.rawValue))"
+        return context.map { text + ", \(messages.text("context")) \(Int($0.rounded()))%" } ?? text
+    }
+}
+
+/// Context window share: green below 30%, yellow below 70%, red from 70%.
+struct ContextBar: View {
+    let usedPercent: Double
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack(alignment: .leading) {
+                Capsule().fill(DesignTokens.ringTrack)
+                Capsule().fill(Self.color(usedPercent))
+                    .frame(width: max(geometry.size.height, geometry.size.width * min(100, max(0, usedPercent)) / 100))
+            }
+        }.accessibilityHidden(true)
+    }
+    static func color(_ usedPercent: Double) -> Color {
+        switch ContextLevel(usedPercent: usedPercent) {
+        case .low: DesignTokens.activity
+        case .medium: DesignTokens.warning
+        case .high: DesignTokens.danger
+        }
     }
 }
 

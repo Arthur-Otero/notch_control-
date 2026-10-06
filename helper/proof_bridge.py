@@ -276,7 +276,10 @@ class ProofBridge:
         from datetime import datetime, timezone
         from screen_status import classify, present
         from account_usage import read_usage, UsageTracker
+        from context_usage import read_context
         usage = UsageTracker()
+        # The tracker keeps lists, so a context reading travels as a one-item list.
+        contexts = UsageTracker()
         await self.inventory_ready.wait()
         while True:
             try:
@@ -296,6 +299,11 @@ class ProofBridge:
                     windows = usage.update(row["identity"], read_usage(text, row["provider"]), time.monotonic())
                     if windows is not None:
                         emit("usage", connection=self.connection, terminal=row["identity"], windows=windows)
+                    context = read_context(text, row["provider"])
+                    context = contexts.update(row["identity"], [] if context is None else [context], time.monotonic())
+                    if context is not None:
+                        emit("context", connection=self.connection, terminal=row["identity"],
+                             usedPercent=context[0] if context else None)
                     found = present(classify(text, row["provider"]), previous, identity == focused)
                     if found is None:
                         continue
@@ -307,6 +315,7 @@ class ProofBridge:
                          baseline=previous is None)
                 self.status_seen = {key: value for key, value in self.status_seen.items() if key in live}
                 usage.retain([row["identity"] for row in rows if row["identity"]["id"] in live])
+                contexts.retain([row["identity"] for row in rows if row["identity"]["id"] in live])
             except asyncio.CancelledError:
                 return
             except Exception:

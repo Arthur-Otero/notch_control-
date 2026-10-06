@@ -6,6 +6,7 @@ import SwiftUI
 struct SessionDetails: View {
     let session: AgentSession?
     var item: WorkItem? = nil
+    var context: Double? = nil
     let windows: [AccountUsageWindow]
     let messages: Messages
     var tailOnLeft = false
@@ -45,6 +46,16 @@ struct SessionDetails: View {
                 }
             }
             agent
+            if let context {
+                VStack(alignment: .leading, spacing: DesignTokens.compact) {
+                    HStack {
+                        Text(messages.text("context")).lineLimit(1)
+                        Spacer(minLength: 4)
+                        Text(percent(context) + "% " + messages.text("usage_used")).monospacedDigit().foregroundStyle(DesignTokens.muted)
+                    }.font(.system(size: 11))
+                    ContextBar(usedPercent: context).frame(height: 5)
+                }.accessibilityElement(children: .combine)
+            }
             usage
             VStack(alignment: .leading, spacing: 3) {
                 if item == nil, let session {
@@ -65,6 +76,9 @@ struct SessionDetails: View {
             .background(TooltipBubble(tailOnLeft: tailOnLeft, tailY: tailY).fill(DesignTokens.notch))
             .fixedSize(horizontal: false, vertical: true)
             .environment(\.locale, Locale(identifier: messages.language == .portuguese ? "pt_BR" : "en_US"))
+    }
+    private func percent(_ value: Double) -> String {
+        value.formatted(.number.precision(.fractionLength(0...1)).locale(Locale(identifier: messages.language == .portuguese ? "pt_BR" : "en_US")))
     }
     /// Agent and state; secondary under a work entry's title.
     private var agent: some View {
@@ -98,8 +112,7 @@ struct SessionDetails: View {
                     HStack {
                         Text(messages.text("usage_" + window.id)).lineLimit(1)
                         Spacer(minLength: 4)
-                        Text(window.usedPercent.formatted(.number.precision(.fractionLength(0...1))
-                            .locale(Locale(identifier: messages.language == .portuguese ? "pt_BR" : "en_US"))) + "% " + messages.text("usage_used"))
+                        Text(percent(window.usedPercent) + "% " + messages.text("usage_used"))
                             .monospacedDigit().foregroundStyle(DesignTokens.muted)
                     }.font(.system(size: 11))
                     GeometryReader { geometry in

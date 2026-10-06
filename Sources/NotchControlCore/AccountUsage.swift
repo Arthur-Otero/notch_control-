@@ -18,6 +18,29 @@ public struct AccountUsageWindow: Codable, Equatable, Identifiable, Sendable {
     }
 }
 
+/// Share of the context window one session uses, as its status bar reports it; nil once the reading expires.
+public struct ContextUsageReading: Decodable, Equatable, Sendable {
+    public let connection: String
+    public let terminal: TerminalIdentity
+    public let usedPercent: Double?
+
+    public init(connection: String, terminal: TerminalIdentity, usedPercent: Double?) {
+        self.connection = connection
+        self.terminal = terminal
+        self.usedPercent = usedPercent
+    }
+
+    public var isValid: Bool { usedPercent.map { $0.isFinite && (0...100).contains($0) } ?? true }
+}
+
+public enum ContextLevel: Equatable, Sendable {
+    case low, medium, high
+    /// Low below 30%, medium below 70%, high from 70%.
+    public init(usedPercent: Double) {
+        self = usedPercent < 30 ? .low : usedPercent < 70 ? .medium : .high
+    }
+}
+
 public struct AccountUsageReading: Decodable, Equatable, Sendable {
     public let connection: String
     public let terminal: TerminalIdentity

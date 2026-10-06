@@ -5,7 +5,8 @@ from screen_status import _claude_composer, _cursor_composer, _codex_composer
 _PERCENT = r"(\d+(?:\.\d+)?)%"
 
 
-def read_usage(text, provider):
+def footer(text, provider):
+    """Status bar lines below the provider's composer; empty when the composer is not on screen."""
     lines = [line.strip() for line in str(text).replace('\x00', ' ').splitlines() if line.strip()]
     footer = []
     if provider == 'codex':
@@ -23,7 +24,11 @@ def read_usage(text, provider):
         composer = _cursor_composer(lines)
         if composer is not None:
             footer = lines[composer[1] + 1:]
-    chrome = ' '.join(footer)
+    return footer
+
+
+def read_usage(text, provider):
+    chrome = ' '.join(footer(text, provider))
     windows = []
 
     def append(key, pattern, remaining=False):
