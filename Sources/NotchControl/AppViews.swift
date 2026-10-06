@@ -191,7 +191,8 @@ private struct SessionButton: View {
              // Sits in the gap below the circle, so the notch keeps its height.
              .overlay(alignment: .bottom) {
                 if let context {
-                    ContextBar(usedPercent: context, track: DesignTokens.contextTrack).frame(width: DesignTokens.iconSize, height: 3).offset(y: 8)
+                    LevelBar(usedPercent: context, level: .context(context), track: DesignTokens.contextTrack)
+                        .frame(width: DesignTokens.iconSize, height: 3).offset(y: 8)
                 }
              }
         }.buttonStyle(.plain).focused($focused).onHover { hovered = $0 }.onChange(of: focused) { _, value in onFocus(value) }.accessibilityLabel(accessibilityText)
@@ -202,21 +203,23 @@ private struct SessionButton: View {
     }
 }
 
-/// Context window share: green below 30%, yellow below 70%, red from 70%.
-struct ContextBar: View {
+/// Used share filled green, yellow or red by its level; any reading above zero shows at least a dot.
+struct LevelBar: View {
     let usedPercent: Double
+    let level: UsageLevel
     var track = DesignTokens.ringTrack
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
                 Capsule().fill(track)
-                Capsule().fill(Self.color(usedPercent))
-                    .frame(width: max(geometry.size.height, geometry.size.width * min(100, max(0, usedPercent)) / 100))
+                if usedPercent > 0 {
+                    Capsule().fill(color).frame(width: max(geometry.size.height, geometry.size.width * min(100, usedPercent) / 100))
+                }
             }
         }.accessibilityHidden(true)
     }
-    static func color(_ usedPercent: Double) -> Color {
-        switch ContextLevel(usedPercent: usedPercent) {
+    private var color: Color {
+        switch level {
         case .low: DesignTokens.activity
         case .medium: DesignTokens.warning
         case .high: DesignTokens.danger
