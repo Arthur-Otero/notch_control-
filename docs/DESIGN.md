@@ -16,6 +16,7 @@ colors:
   focus: "#88B8FF"
   notch: "#000000"
   ringTrack: "#303030"
+  contextTrack: "#4A4A4A"
   notchInk: "#FFFFFF"
   activity: "#00FF88"
 typography:
@@ -112,7 +113,7 @@ Este documento define intenção visual e tokens. O frontmatter alimenta `script
 
 Notch e balão usam preto puro, logos brancos e trilha neutra `ringTrack`. `activity` é trabalho ou resultado não visto; `danger` acompanha `!` para decisão; `unknown` reduz a presença da sessão sem inventar estado. O significado completo está em [status.md](status.md).
 
-A barra de contexto, abaixo da bolinha, usa `activity` abaixo de 30%, `warning` abaixo de 70% e `danger` a partir de 70% do contexto da sessão. O anel continua dizendo o que o agente faz; a barra, quanto do contexto ele ocupa.
+A barra de contexto, abaixo da bolinha e com a largura do anel, usa `activity` abaixo de 30%, `warning` abaixo de 70% e `danger` a partir de 70% do contexto da sessão, sobre a trilha `contextTrack`, um grau mais clara que `ringTrack` para a barra fina não sumir no preto. O anel continua dizendo o que o agente faz; a barra, quanto do contexto ele ocupa.
 
 Texto principal usa `text`, contexto usa `muted` e foco usa `focus`. Forma, texto e nome acessível complementam as cores. A aparência atual é escura; contraste e transparência seguem os recursos do macOS.
 

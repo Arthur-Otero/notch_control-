@@ -190,7 +190,9 @@ private struct SessionButton: View {
              }
              // Sits in the gap below the circle, so the notch keeps its height.
              .overlay(alignment: .bottom) {
-                if let context { ContextBar(usedPercent: context).frame(width: 28, height: 3).offset(y: 8) }
+                if let context {
+                    ContextBar(usedPercent: context, track: DesignTokens.contextTrack).frame(width: DesignTokens.iconSize, height: 3).offset(y: 8)
+                }
              }
         }.buttonStyle(.plain).focused($focused).onHover { hovered = $0 }.onChange(of: focused) { _, value in onFocus(value) }.accessibilityLabel(accessibilityText)
     }
@@ -203,10 +205,11 @@ private struct SessionButton: View {
 /// Context window share: green below 30%, yellow below 70%, red from 70%.
 struct ContextBar: View {
     let usedPercent: Double
+    var track = DesignTokens.ringTrack
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
-                Capsule().fill(DesignTokens.ringTrack)
+                Capsule().fill(track)
                 Capsule().fill(Self.color(usedPercent))
                     .frame(width: max(geometry.size.height, geometry.size.width * min(100, max(0, usedPercent)) / 100))
             }

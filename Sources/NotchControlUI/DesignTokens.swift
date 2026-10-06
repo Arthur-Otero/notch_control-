@@ -14,6 +14,7 @@ public enum DesignTokens {
     public static let focus = color(0x88B8FF)
     public static let notch = color(0x000000)
     public static let ringTrack = color(0x303030)
+    public static let contextTrack = color(0x4A4A4A)
     public static let notchInk = color(0xFFFFFF)
     public static let activity = color(0x00FF88)
     public static let railWidth: CGFloat = 70
