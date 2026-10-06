@@ -53,7 +53,7 @@ struct SessionDetails: View {
                         Spacer(minLength: 4)
                         Text(percent(context) + "% " + messages.text("usage_used")).monospacedDigit().foregroundStyle(DesignTokens.muted)
                     }.font(.system(size: 11))
-                    ContextBar(usedPercent: context).frame(height: 5)
+                    LevelBar(usedPercent: context, level: .context(context)).frame(height: 5)
                 }.accessibilityElement(children: .combine)
             }
             usage
@@ -115,13 +115,7 @@ struct SessionDetails: View {
                         Text(percent(window.usedPercent) + "% " + messages.text("usage_used"))
                             .monospacedDigit().foregroundStyle(DesignTokens.muted)
                     }.font(.system(size: 11))
-                    GeometryReader { geometry in
-                        ZStack(alignment: .leading) {
-                            Capsule().fill(DesignTokens.ringTrack)
-                            Capsule().fill(window.usedPercent >= 80 ? DesignTokens.danger : DesignTokens.activity)
-                                .frame(width: geometry.size.width * min(100, max(0, window.usedPercent)) / 100)
-                        }
-                    }.frame(height: 5).accessibilityHidden(true)
+                    LevelBar(usedPercent: window.usedPercent, level: .account(window.usedPercent)).frame(height: 5)
                     if let reset = window.resetHint {
                         Text(messages.text("usage_resets") + " " + reset)
                             .font(.system(size: 11)).foregroundStyle(DesignTokens.muted)

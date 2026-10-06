@@ -33,11 +33,14 @@ public struct ContextUsageReading: Decodable, Equatable, Sendable {
     public var isValid: Bool { usedPercent.map { $0.isFinite && (0...100).contains($0) } ?? true }
 }
 
-public enum ContextLevel: Equatable, Sendable {
+public enum UsageLevel: Equatable, Sendable {
     case low, medium, high
-    /// Low below 30%, medium below 70%, high from 70%.
-    public init(usedPercent: Double) {
-        self = usedPercent < 30 ? .low : usedPercent < 70 ? .medium : .high
+    /// Context window: medium from 30%, high from 70%.
+    public static func context(_ usedPercent: Double) -> Self { level(usedPercent, medium: 30, high: 70) }
+    /// Account limits: medium from 50%, high from 80%.
+    public static func account(_ usedPercent: Double) -> Self { level(usedPercent, medium: 50, high: 80) }
+    private static func level(_ usedPercent: Double, medium: Double, high: Double) -> Self {
+        usedPercent < medium ? .low : usedPercent < high ? .medium : .high
     }
 }
 

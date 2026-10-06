@@ -2,8 +2,9 @@ import XCTest
 @testable import NotchControlCore
 
 final class ContextUsageTests: XCTestCase {
-    func testLevelsChangeAtThirtyAndSeventyPercent() {
-        XCTAssertEqual([0, 29.9, 30, 69.9, 70, 100].map { ContextLevel(usedPercent: $0) }, [.low, .low, .medium, .medium, .high, .high])
+    func testContextLevelsChangeAtThirtyAndSeventyAndAccountLevelsAtFiftyAndEighty() {
+        XCTAssertEqual([0, 29.9, 30, 69.9, 70, 100].map(UsageLevel.context), [.low, .low, .medium, .medium, .high, .high])
+        XCTAssertEqual([0, 49.9, 50, 79.9, 80, 100].map(UsageLevel.account), [.low, .low, .medium, .medium, .high, .high])
     }
 
     func testReadingsOutsideZeroToHundredAreRejectedAndAnExpiredOneIsValid() throws {
