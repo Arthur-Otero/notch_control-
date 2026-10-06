@@ -34,57 +34,21 @@ struct SessionDetails: View {
     }
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.content) {
-            VStack(alignment: .leading, spacing: DesignTokens.compact) {
-                HStack(spacing: DesignTokens.compact) {
-                    if let provider { ProviderMark(provider: provider).frame(width: 20, height: 20) }
-                    else { WorkMarkIcon(mark: .note).frame(width: 20, height: 20) }
-                    Text(provider?.displayName ?? messages.text("work_entry"))
-                        .font(.system(size: 16, weight: .semibold)).lineLimit(1)
-                }
-                HStack(spacing: DesignTokens.compact) {
-                    Circle().fill(stateColor).frame(width: 6, height: 6)
-                    Text(status).font(.system(size: 12)).foregroundStyle(stateColor).lineLimit(2)
-                }.accessibilityElement(children: .combine)
-            }
-            if session == nil {
-                Text(messages.text(closed == nil ? "note_hint" : "resume_hint")).font(.system(size: 11)).foregroundStyle(DesignTokens.muted)
-                    .fixedSize(horizontal: false, vertical: true)
-            } else if windows.isEmpty {
+            if let item {
                 VStack(alignment: .leading, spacing: DesignTokens.compact) {
-                    Text(messages.text("usage_unavailable")).font(.system(size: 13, weight: .medium))
-                    Text(messages.text("usage_missing_hint")).font(.system(size: 11)).foregroundStyle(DesignTokens.muted)
+                    Text(item.entry.title).font(.system(size: 16, weight: .semibold)).lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
-                }
-            } else {
-                ForEach(windows) { window in
-                    VStack(alignment: .leading, spacing: DesignTokens.compact) {
-                        HStack {
-                            Text(messages.text("usage_" + window.id)).lineLimit(1)
-                            Spacer(minLength: 4)
-                            Text(window.usedPercent.formatted(.number.precision(.fractionLength(0...1))
-                                .locale(Locale(identifier: messages.language == .portuguese ? "pt_BR" : "en_US"))) + "% " + messages.text("usage_used"))
-                                .monospacedDigit().foregroundStyle(DesignTokens.muted)
-                        }.font(.system(size: 11))
-                        GeometryReader { geometry in
-                            ZStack(alignment: .leading) {
-                                Capsule().fill(DesignTokens.ringTrack)
-                                Capsule().fill(window.usedPercent >= 80 ? DesignTokens.danger : DesignTokens.activity)
-                                    .frame(width: geometry.size.width * min(100, max(0, window.usedPercent)) / 100)
-                            }
-                        }.frame(height: 5).accessibilityHidden(true)
-                        if let reset = window.resetHint {
-                            Text(messages.text("usage_resets") + " " + reset)
-                                .font(.system(size: 11)).foregroundStyle(DesignTokens.muted)
-                        }
-                    }.accessibilityElement(children: .combine)
+                    if let status = item.entry.status {
+                        Text(status).font(.system(size: 12)).lineLimit(4).foregroundStyle(DesignTokens.muted)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
             }
+            agent
+            usage
             VStack(alignment: .leading, spacing: 3) {
-                Text(item?.entry.title ?? session?.title ?? "").font(.system(size: 12, weight: .medium))
-                    .lineLimit(item == nil ? 1 : 2).truncationMode(.middle)
-                if let status = item?.entry.status {
-                    Text(status).font(.system(size: 11)).lineLimit(4).foregroundStyle(DesignTokens.muted)
-                        .fixedSize(horizontal: false, vertical: true)
+                if item == nil, let session {
+                    Text(session.title).font(.system(size: 12, weight: .medium)).lineLimit(1).truncationMode(.middle)
                 }
                 if let project {
                     Text(project).font(.system(size: 11)).lineLimit(1).truncationMode(.middle)
@@ -101,6 +65,57 @@ struct SessionDetails: View {
             .background(TooltipBubble(tailOnLeft: tailOnLeft, tailY: tailY).fill(DesignTokens.notch))
             .fixedSize(horizontal: false, vertical: true)
             .environment(\.locale, Locale(identifier: messages.language == .portuguese ? "pt_BR" : "en_US"))
+    }
+    /// Agent and state; secondary under a work entry's title.
+    private var agent: some View {
+        let mark: CGFloat = item == nil ? 20 : 16
+        return VStack(alignment: .leading, spacing: DesignTokens.compact) {
+            HStack(spacing: DesignTokens.compact) {
+                if let provider { ProviderMark(provider: provider).frame(width: mark, height: mark) }
+                else { WorkMarkIcon(mark: .note).frame(width: mark, height: mark) }
+                Text(provider?.displayName ?? messages.text("work_entry"))
+                    .font(.system(size: item == nil ? 16 : 13, weight: .semibold)).lineLimit(1)
+            }
+            HStack(spacing: DesignTokens.compact) {
+                Circle().fill(stateColor).frame(width: 6, height: 6)
+                Text(status).font(.system(size: 12)).foregroundStyle(stateColor).lineLimit(2)
+            }.accessibilityElement(children: .combine)
+        }
+    }
+    @ViewBuilder private var usage: some View {
+        if session == nil {
+            Text(messages.text(closed == nil ? "note_hint" : "resume_hint")).font(.system(size: 11)).foregroundStyle(DesignTokens.muted)
+                .fixedSize(horizontal: false, vertical: true)
+        } else if windows.isEmpty {
+            VStack(alignment: .leading, spacing: DesignTokens.compact) {
+                Text(messages.text("usage_unavailable")).font(.system(size: 13, weight: .medium))
+                Text(messages.text("usage_missing_hint")).font(.system(size: 11)).foregroundStyle(DesignTokens.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        } else {
+            ForEach(windows) { window in
+                VStack(alignment: .leading, spacing: DesignTokens.compact) {
+                    HStack {
+                        Text(messages.text("usage_" + window.id)).lineLimit(1)
+                        Spacer(minLength: 4)
+                        Text(window.usedPercent.formatted(.number.precision(.fractionLength(0...1))
+                            .locale(Locale(identifier: messages.language == .portuguese ? "pt_BR" : "en_US"))) + "% " + messages.text("usage_used"))
+                            .monospacedDigit().foregroundStyle(DesignTokens.muted)
+                    }.font(.system(size: 11))
+                    GeometryReader { geometry in
+                        ZStack(alignment: .leading) {
+                            Capsule().fill(DesignTokens.ringTrack)
+                            Capsule().fill(window.usedPercent >= 80 ? DesignTokens.danger : DesignTokens.activity)
+                                .frame(width: geometry.size.width * min(100, max(0, window.usedPercent)) / 100)
+                        }
+                    }.frame(height: 5).accessibilityHidden(true)
+                    if let reset = window.resetHint {
+                        Text(messages.text("usage_resets") + " " + reset)
+                            .font(.system(size: 11)).foregroundStyle(DesignTokens.muted)
+                    }
+                }.accessibilityElement(children: .combine)
+            }
+        }
     }
 }
 
