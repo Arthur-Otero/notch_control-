@@ -53,7 +53,7 @@ final class WindowCoordinator {
         store.onLayout = { [weak self] in self?.layout() }
         store.onActivate = { [weak self] in self?.activate() }
         store.onSettings = { [weak self] in self?.showSettings() }
-        store.onTooltip = { [weak self] session in self?.showTooltip(session) }
+        store.onTooltip = { [weak self] id in self?.showTooltip(id) }
         tooltipUpdates = store.objectWillChange.receive(on: DispatchQueue.main).sink { [weak self] _ in
             self?.refreshTooltip()
         }
@@ -73,7 +73,7 @@ final class WindowCoordinator {
         let open = store.panelOpen
         let expanded = store.railExpanded
         let width = expanded ? DesignTokens.railWidth : DesignTokens.pillWidth
-        let height = expanded ? NotchMetrics.height(sessions: store.registry.sessions.count, available: area.height) : min(area.height, DesignTokens.pillHeight)
+        let height = expanded ? store.railHeight(available: area.height) : min(area.height, DesignTokens.pillHeight)
         let screen = ScreenArea(x: area.minX, y: area.minY, width: area.width, height: area.height)
         let layout = PanelLayout(screen: screen, edge: store.preferences.edge, preferredWidth: store.preferences.panelWidth, railWidth: DesignTokens.railWidth)
         let contentWidth = open ? store.dragWidth.map { min(layout.maximumWidth, max(1, $0)) } ?? layout.content.width : 0
@@ -148,14 +148,20 @@ final class WindowCoordinator {
         settings?.title = store.messages.text("settings")
         NSApp.activate(ignoringOtherApps: true); settings?.makeKeyAndOrderFront(nil)
     }
-    private func showTooltip(_ session: AgentSession?) {
-        tooltipID = session?.id
+    private func showTooltip(_ id: String?) {
+        tooltipID = id
         tooltipAnchor = NSEvent.mouseLocation
         refreshTooltip()
     }
     private func refreshTooltip() {
-        guard let tooltipID, !store.draggingRail,
-              let session = store.registry.sessions.first(where: { $0.id == tooltipID }) else {
+        let row = tooltipID.flatMap { id in store.railRows.first { $0.id == id } }
+        let session: AgentSession?, item: WorkItem?
+        switch row {
+        case .session(let value): (session, item) = (value, nil)
+        case .entry(let value, let open): (session, item) = (open, value)
+        case .divider, nil: (session, item) = (nil, nil)
+        }
+        guard !store.draggingRail, session != nil || item != nil else {
             tooltip?.orderOut(nil)
             return
         }
@@ -166,9 +172,11 @@ final class WindowCoordinator {
         panel.hidesOnDeactivate = false; panel.isReleasedWhenClosed = false; panel.hasShadow = false
         panel.isOpaque = false; panel.backgroundColor = .clear
         panel.ignoresMouseEvents = true
-        let windows = store.gateway.accountUsage[session.terminal.id].flatMap { $0.terminal == session.terminal ? $0.windows : nil } ?? []
+        let windows = session.flatMap { session in
+            store.gateway.accountUsage[session.terminal.id].flatMap { $0.terminal == session.terminal ? $0.windows : nil }
+        } ?? []
         let left = store.preferences.edge == .left
-        let host = NSHostingView(rootView: SessionDetails(session: session, windows: windows, messages: store.messages, tailOnLeft: left))
+        let host = NSHostingView(rootView: SessionDetails(session: session, item: item, windows: windows, messages: store.messages, tailOnLeft: left))
         let height = min(host.fittingSize.height, area.height)
         let width = DesignTokens.tooltipWidth
         let y = min(max(area.minY, tooltipAnchor.y - height / 2), area.maxY - height)

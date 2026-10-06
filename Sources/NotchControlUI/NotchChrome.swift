@@ -3,16 +3,18 @@ import SwiftUI
 
 public enum NotchMetrics {
     public static var cellHeight: CGFloat { DesignTokens.iconSize }
-    public static func contentHeight(sessions: Int) -> CGFloat {
+    /// A divider is a 1 pt line that takes one more cell spacing between the rows around it.
+    public static func contentHeight(sessions: Int, dividers: Int = 0) -> CGFloat {
         let rows = CGFloat(max(0, sessions)) * cellHeight + CGFloat(max(0, sessions - 1)) * DesignTokens.cellSpacing
+            + CGFloat(max(0, dividers)) * (1 + DesignTokens.cellSpacing)
         let fixed = 2 * DesignTokens.flare + DesignTokens.topPadding + DesignTokens.iconSize + 33 + DesignTokens.bottomPadding + (sessions > 0 ? 8 : 0)
         return fixed + rows
     }
-    public static func height(sessions: Int, available: CGFloat) -> CGFloat {
-        min(max(0, available), min(600, contentHeight(sessions: sessions)))
+    public static func height(sessions: Int, dividers: Int = 0, available: CGFloat) -> CGFloat {
+        min(max(0, available), min(600, contentHeight(sessions: sessions, dividers: dividers)))
     }
-    public static func needsScrolling(sessions: Int, available: CGFloat) -> Bool {
-        sessions > 0 && contentHeight(sessions: sessions) > height(sessions: sessions, available: available)
+    public static func needsScrolling(sessions: Int, dividers: Int = 0, available: CGFloat) -> Bool {
+        sessions > 0 && contentHeight(sessions: sessions, dividers: dividers) > height(sessions: sessions, dividers: dividers, available: available)
     }
 }
 

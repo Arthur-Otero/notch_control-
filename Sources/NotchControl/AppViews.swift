@@ -49,7 +49,7 @@ struct RailView: View {
         }.frame(width: DesignTokens.railWidth)
             .onHover(perform: store.setHover)
             .onChange(of: store.content) { _, _ in hoverTask?.cancel(); store.onTooltip?(nil) }
-            .onChange(of: store.registry.sessions.map(\.id)) { _, _ in hoverTask?.cancel(); store.onTooltip?(nil) }
+            .onChange(of: store.railRows.map(\.id)) { _, _ in hoverTask?.cancel(); store.onTooltip?(nil) }
             .onDisappear { hoverTask?.cancel(); store.onTooltip?(nil) }
             .sheet(isPresented: Binding(get: { store.renameID != nil }, set: { if !$0 { store.renameID = nil } })) {
                 VStack(alignment: .leading, spacing: DesignTokens.content) {
@@ -60,21 +60,43 @@ struct RailView: View {
             }
     }
     private var needsScrolling: Bool {
-        NotchMetrics.needsScrolling(sessions: store.registry.sessions.count, available: store.screen.visibleFrame.height)
+        let counts = store.railCounts
+        return NotchMetrics.needsScrolling(sessions: counts.cells, dividers: counts.dividers, available: store.screen.visibleFrame.height)
     }
     private var sessionRows: some View {
-        VStack(spacing: DesignTokens.cellSpacing) {
-            ForEach(store.registry.sessions) { session in
-                sessionRow(session)
+        let rows = store.railRows
+        return VStack(spacing: DesignTokens.cellSpacing) {
+            ForEach(rows) { row in
+                railRow(row)
                     .transition(reducedMotion ? .identity : NotchMotion.sessionTransition)
             }
-        }.frame(maxWidth: .infinity).padding(.vertical, store.registry.sessions.isEmpty ? 0 : 4)
-            .animation(reducedMotion || store.draggingRail ? nil : NotchMotion.animation, value: store.registry.sessions.map(\.id))
+        }.frame(maxWidth: .infinity).padding(.vertical, rows.isEmpty ? 0 : 4)
+            .animation(reducedMotion || store.draggingRail ? nil : NotchMotion.animation, value: rows.map(\.id))
+    }
+    @ViewBuilder private func railRow(_ row: RailRow) -> some View {
+        switch row {
+        case .session(let session): sessionRow(session)
+        case .entry(let item, let session): entryRow(item, session: session)
+        case .divider: Rectangle().fill(DesignTokens.ringTrack).frame(width: DesignTokens.iconSize, height: 1).accessibilityHidden(true)
+        }
+    }
+    /// Entries follow the work file order, so they offer details but no rename or move.
+    @ViewBuilder private func entryRow(_ item: WorkItem, session: AgentSession?) -> some View {
+        let cell = Group {
+            if let session {
+                SessionButton(session: session, selected: store.content == session.id, reducedMotion: reducedMotion, messages: m,
+                    label: item.entry.title, onFocus: { focused in tooltip(focused ? item.id : nil) }) { store.choose(item) }
+            } else {
+                WorkButton(item: item, messages: m, onFocus: { focused in tooltip(focused ? item.id : nil) }) { store.choose(item) }
+            }
+        }.onHover { inside in tooltip(inside ? item.id : nil) }
+        if preview { cell }
+        else { cell.contextMenu { Button(m.text("details")) { store.onTooltip?(item.id) } } }
     }
     @ViewBuilder private func sessionRow(_ session: AgentSession) -> some View {
         let cell = SessionButton(session: session, selected: store.content == session.id, reducedMotion: reducedMotion, messages: m,
-            onFocus: { focused in tooltip(focused ? session : nil) }) { store.choose(session.id) }
-            .onHover { inside in tooltip(inside ? session : nil) }
+            onFocus: { focused in tooltip(focused ? session.id : nil) }) { store.choose(session.id) }
+            .onHover { inside in tooltip(inside ? session.id : nil) }
         if preview { cell }
         else {
             cell.draggable(session.id)
@@ -83,7 +105,7 @@ struct RailView: View {
                     store.move(id, before: session.id); return true
                 }
                 .contextMenu {
-                    Button(m.text("details")) { store.onTooltip?(session) }
+                    Button(m.text("details")) { store.onTooltip?(session.id) }
                     Button(m.text("rename")) { store.rename(session) }
                     Button(m.text("move_before")) { store.moveBy(session.id, offset: -1) }
                     Button(m.text("move_after")) { store.moveBy(session.id, offset: 1) }
@@ -100,13 +122,13 @@ struct RailView: View {
             exposesAccessibility: false, hint: m.text("drag_notch"))
             .focusEffectDisabled()
     }
-    private func tooltip(_ session: AgentSession?) {
+    private func tooltip(_ id: String?) {
         hoverTask?.cancel()
-        guard let session else { store.onTooltip?(nil); return }
+        guard let id else { store.onTooltip?(nil); return }
         hoverTask = Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(400))
             guard !Task.isCancelled else { return }
-            store.onTooltip?(session)
+            store.onTooltip?(id)
         }
     }
 
@@ -131,6 +153,8 @@ private struct SessionButton: View {
     let selected: Bool
     let reducedMotion: Bool
     let messages: Messages
+    /// Work entry title read in place of the terminal title.
+    var label: String? = nil
     let onFocus: (Bool) -> Void
     let action: () -> Void
     @FocusState private var focused: Bool
@@ -162,12 +186,54 @@ private struct SessionButton: View {
                         .frame(width: 16, height: 16).background(DesignTokens.danger, in: Circle()).offset(x: 3, y: -3)
                 }
              }
-        }.buttonStyle(.plain).focused($focused).onHover { hovered = $0 }.onChange(of: focused) { _, value in onFocus(value) }.accessibilityLabel("\(session.provider.displayName), \(session.title), \(messages.text(session.state.rawValue))")
+        }.buttonStyle(.plain).focused($focused).onHover { hovered = $0 }.onChange(of: focused) { _, value in onFocus(value) }.accessibilityLabel("\(session.provider.displayName), \(label ?? session.title), \(messages.text(session.state.rawValue))")
+    }
+}
+
+/// Work entry without an open terminal: the newest session's agent in the track color, or a document when it lists none.
+private struct WorkButton: View {
+    let item: WorkItem
+    let messages: Messages
+    let onFocus: (Bool) -> Void
+    let action: () -> Void
+    @FocusState private var focused: Bool
+    @State private var hovered = false
+    var body: some View {
+        Button(action: action) {
+            ZStack {
+                Circle().fill(hovered ? DesignTokens.background : DesignTokens.notch)
+                Circle().strokeBorder(DesignTokens.ringTrack, lineWidth: DesignTokens.trackStroke)
+                WorkMarkIcon(mark: item.mark, tint: DesignTokens.ringTrack).frame(width: DesignTokens.glyphSize, height: DesignTokens.glyphSize)
+                if focused { Circle().stroke(DesignTokens.focus, style: StrokeStyle(lineWidth: 2, dash: [2, 2])).padding(-3) }
+            }.frame(width: DesignTokens.iconSize, height: DesignTokens.iconSize)
+        }.buttonStyle(.plain).focused($focused).onHover { hovered = $0 }.onChange(of: focused) { _, value in onFocus(value) }
+            .accessibilityLabel(accessibilityText)
+    }
+    private var accessibilityText: String {
+        if case .closed(let request) = item.mark { return "\(request.provider.displayName), \(item.entry.title), \(messages.text("terminal_closed"))" }
+        return "\(item.entry.title), \(messages.text("no_session"))"
+    }
+}
+
+/// Agent logo of a closed entry, or a document for an entry without sessions.
+struct WorkMarkIcon: View {
+    let mark: WorkMark
+    var tint: Color? = nil
+    var body: some View {
+        switch mark {
+        case .open: EmptyView()
+        case .closed(let request): ProviderMark(provider: request.provider, tint: tint)
+        case .note:
+            Image(systemName: "doc.text").resizable().aspectRatio(contentMode: .fit)
+                .foregroundStyle(tint ?? DesignTokens.notchInk).accessibilityHidden(true)
+        }
     }
 }
 
 struct ProviderMark: View {
     let provider: AgentProvider
+    /// Paints the logo as a silhouette in this color.
+    var tint: Color? = nil
     private var image: NSImage? {
         switch provider {
         case .claude: ProviderImages.claude
@@ -176,8 +242,13 @@ struct ProviderMark: View {
         }
     }
     var body: some View {
-        if let image { Image(nsImage: image).resizable().aspectRatio(contentMode: .fit).accessibilityHidden(true) }
-        else { Text(String(provider.displayName.prefix(1))).font(.system(size: DesignTokens.glyphSize, weight: .bold)).accessibilityHidden(true) }
+        if let image, let tint {
+            Image(nsImage: image).renderingMode(.template).resizable().aspectRatio(contentMode: .fit).foregroundStyle(tint).accessibilityHidden(true)
+        } else if let image { Image(nsImage: image).resizable().aspectRatio(contentMode: .fit).accessibilityHidden(true) }
+        else {
+            Text(String(provider.displayName.prefix(1))).font(.system(size: DesignTokens.glyphSize, weight: .bold))
+                .foregroundStyle(tint ?? DesignTokens.notchInk).accessibilityHidden(true)
+        }
     }
 }
 

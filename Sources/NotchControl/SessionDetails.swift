@@ -2,15 +2,24 @@ import NotchControlCore
 import NotchControlUI
 import SwiftUI
 
+/// Balloon of a session, or of a work entry with or without an open session.
 struct SessionDetails: View {
-    let session: AgentSession
+    let session: AgentSession?
+    var item: WorkItem? = nil
     let windows: [AccountUsageWindow]
     let messages: Messages
     var tailOnLeft = false
     var tailY: CGFloat?
 
+    private var closed: ResumeRequest? {
+        if case .closed(let request) = item?.mark { return request }
+        return nil
+    }
+    private var provider: AgentProvider? { session?.provider ?? closed?.provider }
+    private var project: String? { session?.project ?? closed?.directory }
     private var stateColor: Color {
-        switch session.state {
+        guard let session else { return DesignTokens.muted }
+        return switch session.state {
         case .working: DesignTokens.activity
         case .waiting: DesignTokens.danger
         case .idle: session.unseenResult ? DesignTokens.activity : DesignTokens.muted
@@ -18,6 +27,7 @@ struct SessionDetails: View {
         }
     }
     private var status: String {
+        guard let session else { return messages.text(closed == nil ? "no_session" : "terminal_closed") }
         let key = session.unseenResult ? "usage_result" : session.state.rawValue
         let reason = session.reason.flatMap { ["approval", "question"].contains($0) ? messages.text($0) : nil }
         return messages.text(key) + (reason.map { " · \($0)" } ?? "")
@@ -26,8 +36,9 @@ struct SessionDetails: View {
         VStack(alignment: .leading, spacing: DesignTokens.content) {
             VStack(alignment: .leading, spacing: DesignTokens.compact) {
                 HStack(spacing: DesignTokens.compact) {
-                    ProviderMark(provider: session.provider).frame(width: 20, height: 20)
-                    Text(session.provider.displayName)
+                    if let provider { ProviderMark(provider: provider).frame(width: 20, height: 20) }
+                    else { WorkMarkIcon(mark: .note).frame(width: 20, height: 20) }
+                    Text(provider?.displayName ?? messages.text("work_entry"))
                         .font(.system(size: 16, weight: .semibold)).lineLimit(1)
                 }
                 HStack(spacing: DesignTokens.compact) {
@@ -35,7 +46,10 @@ struct SessionDetails: View {
                     Text(status).font(.system(size: 12)).foregroundStyle(stateColor).lineLimit(2)
                 }.accessibilityElement(children: .combine)
             }
-            if windows.isEmpty {
+            if session == nil {
+                Text(messages.text(closed == nil ? "note_hint" : "resume_hint")).font(.system(size: 11)).foregroundStyle(DesignTokens.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else if windows.isEmpty {
                 VStack(alignment: .leading, spacing: DesignTokens.compact) {
                     Text(messages.text("usage_unavailable")).font(.system(size: 13, weight: .medium))
                     Text(messages.text("usage_missing_hint")).font(.system(size: 11)).foregroundStyle(DesignTokens.muted)
@@ -66,10 +80,17 @@ struct SessionDetails: View {
                 }
             }
             VStack(alignment: .leading, spacing: 3) {
-                Text(session.title).font(.system(size: 12, weight: .medium)).lineLimit(1).truncationMode(.middle)
-                Text(session.project).font(.system(size: 11)).lineLimit(1).truncationMode(.middle)
-                    .foregroundStyle(DesignTokens.muted)
-                if !windows.isEmpty {
+                Text(item?.entry.title ?? session?.title ?? "").font(.system(size: 12, weight: .medium))
+                    .lineLimit(item == nil ? 1 : 2).truncationMode(.middle)
+                if let status = item?.entry.status {
+                    Text(status).font(.system(size: 11)).lineLimit(4).foregroundStyle(DesignTokens.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                if let project {
+                    Text(project).font(.system(size: 11)).lineLimit(1).truncationMode(.middle)
+                        .foregroundStyle(DesignTokens.muted)
+                }
+                if session != nil, !windows.isEmpty {
                     Text(messages.text("usage_source")).font(.system(size: 10)).foregroundStyle(DesignTokens.muted)
                 }
             }

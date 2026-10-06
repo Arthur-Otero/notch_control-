@@ -138,3 +138,10 @@
 "usage_resets" = "Resets:";
 
 "usage_result" = "Response completed";
+"work_mode" = "Show work file entries in the notch";
+"work_mode_hint" = "One circle per entry, using its newest session. Open sessions outside the file stay below the divider.";
+"work_entry" = "Work entry";
+"terminal_closed" = "Terminal closed";
+"resume_hint" = "Click to resume the newest session in iTerm2.";
+"no_session" = "No session";
+"note_hint" = "Click to open the work file.";

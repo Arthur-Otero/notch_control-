@@ -138,3 +138,10 @@
 "usage_resets" = "Renova:";
 
 "usage_result" = "Resposta concluída";
+"work_mode" = "Mostrar entradas do arquivo de trabalho no notch";
+"work_mode_hint" = "Uma bolinha por entrada, com a sessão mais recente. Sessões abertas fora do arquivo ficam abaixo do separador.";
+"work_entry" = "Entrada de trabalho";
+"terminal_closed" = "Terminal fechado";
+"resume_hint" = "Clique para retomar a sessão mais recente no iTerm2.";
+"no_session" = "Sem sessão";
+"note_hint" = "Clique para abrir o arquivo de trabalho.";
