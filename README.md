@@ -15,7 +15,7 @@ Inspirado no [CodeNotch, de vinzdg](https://github.com/vinzdg/codenotch), especi
 - Barra fina abaixo da bolinha com o contexto ocupado pela sessão, quando o rodapé o informa.
 - Notch nas bordas esquerda ou direita, com posição, monitor, aliases e ordem das sessões persistidos.
 - Painel de Markdown somente leitura, com abas de trabalho e histórico, seleção, cópia e atualização automática.
-- Modo opcional com uma bolinha por entrada do arquivo de trabalho, retomando no iTerm2 as sessões com terminal fechado.
+- Modo opcional com uma bolinha por sessão do arquivo de trabalho, retomando no iTerm2 as sessões com terminal fechado. Entradas que dividem uma sessão ficam numa bolinha só.
 - Preferências em português e inglês, sons e notificações configuráveis.
 - Diagnóstico da integração e reconexão automática quando o iTerm2 fica disponível.
 
@@ -89,7 +89,7 @@ Feche pelo ícone de documento, botão de fechar, `⌘W` ou arrastando a borda i
 
 ### Entradas do arquivo de trabalho no notch
 
-Com um arquivo de trabalho escolhido, ligue **Preferências → Relatório → Mostrar entradas do arquivo de trabalho no notch**. O notch passa a mostrar uma bolinha por entrada `##` do arquivo, na ordem dele. Cada entrada lista suas sessões com o comando de retomada, a mais recente primeiro:
+Com um arquivo de trabalho escolhido, ligue **Preferências → Relatório → Mostrar entradas do arquivo de trabalho no notch**. O notch passa a mostrar uma bolinha por sessão do arquivo, na ordem das entradas `##`. Cada entrada lista suas sessões com o comando de retomada, a mais recente primeiro:
 
 ```markdown
 ## 2026-10-06 08:00 — #123 Paywall novo
@@ -105,7 +105,9 @@ Com um arquivo de trabalho escolhido, ligue **Preferências → Relatório → M
 | Nenhuma sessão aberta | Logo do agente na cor da trilha | Retoma a sessão mais recente numa aba nova |
 | Sem sessões | Documento na cor da trilha | Abre o painel do arquivo de trabalho |
 
-O notch agrupa as bolinhas, separadas por divisórias: primeiro as entradas com terminal aberto, depois as sessões abertas que nenhuma entrada mostra e, por último, as entradas sem terminal aberto. Dentro de cada grupo vale a ordem do arquivo. O balão de uma entrada mostra o título, o estado, o `Status` e a pasta. Para ligar a sessão aberta à entrada, o app usa o registro de sessões do Claude Code e, nos outros CLIs, o ID passado na retomada (`codex resume <id>`, `agent --resume <id>`).
+Uma sessão pode cobrir vários repositórios, e então várias entradas listam a mesma conversa. Cada entrada é representada por uma sessão: a aberta no iTerm2 ou, se nenhuma estiver aberta, a mais recente. Entradas representadas pela mesma sessão dividem uma única bolinha, então cada sessão, aberta ou fechada, aparece uma só vez. A bolinha usa o título e o `Status` da primeira dessas entradas na ordem do arquivo, e o balão acrescenta `+N na mesma sessão` com os títulos das demais. Uma sessão antiga de uma entrada que já tem outra sessão aberta ou mais recente não ganha bolinha própria. Se a mesma conversa estiver aberta em duas abas, a segunda continua visível entre as sessões fora do arquivo.
+
+O notch agrupa as bolinhas, separadas por divisórias: primeiro as entradas com terminal aberto, depois as sessões abertas que nenhuma entrada mostra e, por último, as entradas sem terminal aberto. Dentro de cada grupo vale a ordem do arquivo. O balão de uma entrada mostra o título, o `Status`, os títulos das entradas que dividem a sessão, o estado e a pasta. Para ligar a sessão aberta à entrada, o app usa o registro de sessões do Claude Code e, nos outros CLIs, o ID passado na retomada (`codex resume <id>`, `agent --resume <id>`).
 
 ### Hooks opcionais
 

@@ -11,4 +11,10 @@ struct Messages {
         let value = bundle.localizedString(forKey: key, value: nil, table: "Localizable")
         return value == key ? bundle.localizedString(forKey: "api_operation_failed", value: nil, table: "Localizable") : value
     }
+    /// How many more work entries share the bubble's session, as in "+3 in the same session".
+    func sharedSession(_ count: Int) -> String { "+\(count) " + text("work_also") }
+    /// Accessible name of a work bubble: its title, plus how many more entries share the session.
+    func title(of item: WorkItem) -> String {
+        item.others.isEmpty ? item.entry.title : item.entry.title + ", " + sharedSession(item.others.count)
+    }
 }

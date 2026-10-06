@@ -95,6 +95,87 @@ final class WorkModeTests: XCTestCase {
         XCTAssertEqual(store.railRows.map(\.id), ["claude:claude-tab:1", "codex:codex-tab:1"])
     }
 
+    /// One session covering several repositories is listed by several entries: the rail shows each session once,
+    /// the one in use and the closed one, and the balloon names the other entries that share it.
+    @MainActor
+    func testEntriesSharingASessionAreOneBubbleWithTheOthersInTheBalloon() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let state = folder.appendingPathComponent(".notchcontrol")
+        try FileManager.default.createDirectory(at: state, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let work = folder.appendingPathComponent("work.md")
+        try """
+        # Work
+
+        ## 2026-10-06 10:24 — Primeira
+        - Sessões:
+          - 2026-10-06 · Opus 5.5
+            cd /Users/test/repos && claude -r \(open)
+          - 2026-10-05 · Opus 5.5
+            cd /Users/test/repos && claude -r \(closed)
+        - Status: Primeira etapa pronta.
+
+        ## 2026-10-06 10:24 — Segunda
+        - Sessões:
+          - 2026-10-06 · Opus 5.5
+            cd /Users/test/repos && claude -r \(open)
+        - Status: Segunda etapa pronta.
+
+        ## 2026-10-05 15:26 — Terceira
+        - Sessões:
+          - 2026-10-05 · Opus 5.5
+            cd /Users/test/repos && claude -r \(closed)
+        - Status: Terceira etapa aberta em PR.
+
+        ## 2026-10-05 15:26 — Quarta
+        - Sessões:
+          - 2026-10-05 · Opus 5.5
+            cd /Users/test/repos && claude -r \(closed)
+
+        ## 2026-10-04 12:00 — Nota
+        - Status: aguardando o autor.
+        """.write(to: work, atomically: true, encoding: .utf8)
+        var registry = AgentRegistry()
+        registry.reconcile([
+            AgentCandidate(terminal: .init(id: "claude-tab", generation: "1"), provider: .claude, project: "/Users/test/repos", name: "Claude", conversation: open),
+            AgentCandidate(terminal: .init(id: "codex-tab", generation: "1"), provider: .codex, project: "/Users/test/other", name: "Codex")
+        ])
+        try JSONEncoder().encode(registry).write(to: state.appendingPathComponent("sessions.json"))
+        var preferences = AppPreferences()
+        preferences.workPath = work.path
+        preferences.showsWorkEntries = true
+        try JSONEncoder().encode(preferences).write(to: state.appendingPathComponent("preferences.json"))
+
+        let store = AppStore(project: folder)
+        defer { store.work.stop(); store.history.stop() }
+        let deadline = Date().addingTimeInterval(5)
+        while store.work.document.entries.count < 5, Date() < deadline { RunLoop.main.run(until: Date().addingTimeInterval(0.1)) }
+
+        // Primeira and Segunda resolve to the session in use, Terceira and Quarta to the closed one: two bubbles, not four.
+        let rows = store.railRows
+        XCTAssertEqual(rows.map(\.id), ["work:Primeira", "divider:1", "codex:codex-tab:1", "divider:2", "work:Terceira", "work:Nota"])
+        XCTAssertEqual(store.railCounts.cells, 4)
+        guard case .entry(let shared, let session) = rows[0], case .entry(let sharedClosed, .none) = rows[4] else {
+            return XCTFail("Unexpected rows \(rows.map(\.id))")
+        }
+        XCTAssertEqual(session?.id, "claude:claude-tab:1")
+        XCTAssertEqual(shared.others.map(\.title), ["Segunda"])
+        XCTAssertEqual(sharedClosed.mark, .closed(try XCTUnwrap(ResumeRequest(provider: .claude, conversation: closed, directory: "/Users/test/repos"))))
+        XCTAssertEqual(sharedClosed.others.map(\.title), ["Quarta"])
+        XCTAssertEqual(Messages(language: .portuguese).title(of: shared), "Primeira, +1 na mesma sessão")
+        XCTAssertEqual(Messages(language: .english).title(of: sharedClosed), "Terceira, +1 in the same session")
+
+        for language in [InterfaceLanguage.portuguese, .english] {
+            for (name, session, item) in [("shared", session, shared), ("shared-closed", nil, sharedClosed)] {
+                let content = SessionDetails(session: session, item: item, windows: [], messages: Messages(language: language))
+                let host = NSHostingView(rootView: content)
+                XCTAssertEqual(host.fittingSize.width, DesignTokens.tooltipWidth, accuracy: 1, name)
+                XCTAssertLessThan(host.fittingSize.height, 360, name)
+                try render(content.background(Color(red: 0.12, green: 0.14, blue: 0.18)), "work-tooltip-\(language.rawValue)-\(name)")
+            }
+        }
+    }
+
     /// Writes a PNG to `NC_RENDER_DIR` for visual review; otherwise only checks that the view renders.
     @MainActor
     private func render(_ view: some View, _ name: String) throws {

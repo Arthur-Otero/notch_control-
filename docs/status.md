@@ -16,12 +16,12 @@ Clicar na bolinha traz a aba dessa sessão para a frente. O painel não copia o 
 
 Abaixo da bolinha, uma barra fina mostra quanto do contexto a sessão ocupa: verde abaixo de 30%, amarela abaixo de 70% e vermelha a partir de 70%. Ela só aparece quando o rodapé do CLI informa o contexto, e o balão repete o percentual.
 
-Com **Mostrar entradas do arquivo de trabalho no notch** ligado, cada bolinha é uma entrada do `work.md`:
+Com **Mostrar entradas do arquivo de trabalho no notch** ligado, cada bolinha é uma sessão do `work.md`. Cada entrada é representada pela sua sessão aberta ou, sem nenhuma aberta, pela mais recente. Entradas representadas pela mesma sessão dividem uma bolinha, porque uma sessão pode cobrir vários repositórios: a sessão aparece uma vez, aberta ou fechada. O título e o `Status` são os da primeira dessas entradas, e o balão acrescenta `+N na mesma sessão` com os títulos das demais.
 
 | O que você vê | Significado | Clique |
 |---|---|---|
 | Qualquer indicador acima | A sessão mais recente da entrada que está aberta no iTerm2. | Traz a aba para a frente. |
-| Logo na cor da trilha, sem anel | Nenhuma sessão da entrada tem terminal aberto. | Retoma a sessão mais recente numa aba nova. |
+| Logo na cor da trilha, sem anel | Nenhuma sessão da entrada tem terminal aberto; é a sessão fechada mais recente dela. | Retoma essa sessão numa aba nova. |
 | Documento na cor da trilha | A entrada não lista sessões. | Abre o arquivo de trabalho. |
 | Linha entre grupos | Separa, nesta ordem: entradas com terminal aberto, sessões abertas fora do arquivo e entradas sem terminal aberto. | — |
 

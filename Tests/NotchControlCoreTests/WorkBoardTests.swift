@@ -69,6 +69,72 @@ final class WorkBoardTests: XCTestCase {
         XCTAssertEqual(board.unlisted, ["codex:a:1", "claude:d:1"])
     }
 
+    /// One session works across several repositories, so each entry lists it. V1 and V2 list the session in use and the
+    /// previous one, which is closed; the two apps were last worked on in the previous one.
+    private var sharedEntries: [WorkEntry] {
+        entries([("V1", [newest, older]), ("V2", [newest, older]), ("App A", [older]), ("App B", [older]), ("Solta", [other]), ("Nota", [])])
+    }
+
+    func testEachSessionIsOneBubbleWhetherOpenOrClosedAndSharingEntriesJoinIt() throws {
+        var registry = AgentRegistry()
+        registry.reconcile([session("a", .claude, newest), session("b", .claude, other)])
+        let board = WorkBoard(entries: sharedEntries, sessions: registry.sessions)
+        XCTAssertEqual(board.items.map(\.entry.title), ["V1", "App A", "Solta", "Nota"])
+        XCTAssertEqual(board.items.map { $0.others.map(\.title) }, [["V2"], ["App B"], [], []])
+        // The session in use points to its tab; the previous one is closed and stays a bubble that resumes it.
+        XCTAssertEqual(board.items.map(\.mark), [
+            .open("claude:a:1"),
+            .closed(try XCTUnwrap(ResumeRequest(provider: .claude, conversation: older, directory: "/Users/test/app"))),
+            .open("claude:b:1"),
+            .note
+        ])
+        XCTAssertEqual(board.items.map(\.id), ["work:V1", "work:App A", "work:Solta", "work:Nota"])
+        XCTAssertEqual(board.unlisted, [])
+        // No session in two bubbles, whether it comes from an entry or from outside the file.
+        let ids = board.items.compactMap { item -> String? in
+            switch item.mark {
+            case .open(let id): id
+            case .closed(let request): request.provider.rawValue + ":" + request.conversation
+            case .note: nil
+            }
+        } + board.unlisted
+        XCTAssertEqual(ids.count, Set(ids).count)
+    }
+
+    func testWithoutAnyOpenTerminalEachNewestSessionResumesFromOneBubble() throws {
+        let board = WorkBoard(entries: sharedEntries, sessions: [])
+        XCTAssertEqual(board.items.map(\.entry.title), ["V1", "App A", "Solta", "Nota"])
+        XCTAssertEqual(board.items.map { $0.others.map(\.title) }, [["V2"], ["App B"], [], []])
+        XCTAssertEqual(board.items[0].mark, .closed(try XCTUnwrap(ResumeRequest(provider: .claude, conversation: newest, directory: "/Users/test/app"))))
+        XCTAssertEqual(board.items[1].mark, .closed(try XCTUnwrap(ResumeRequest(provider: .claude, conversation: older, directory: "/Users/test/app"))))
+    }
+
+    func testAnOlderOpenSessionRepresentsItsEntryAndJoinsTheEntriesThatListOnlyIt() {
+        var registry = AgentRegistry()
+        registry.reconcile([session("old", .claude, older)])
+        let board = WorkBoard(entries: sharedEntries, sessions: registry.sessions)
+        // V1 and V2 list a newer closed session too, but the open one wins, so all four entries share its tab.
+        XCTAssertEqual(board.items[0].mark, .open("claude:old:1"))
+        XCTAssertEqual(board.items[0].others.map(\.title), ["V2", "App A", "App B"])
+        XCTAssertEqual(board.items.map(\.entry.title), ["V1", "Solta", "Nota"])
+        XCTAssertEqual(board.unlisted, [])
+    }
+
+    func testASecondOpenSessionOfTheSameConversationStaysVisibleOutsideTheBubble() {
+        var registry = AgentRegistry()
+        registry.reconcile([session("a", .claude, newest), session("copy", .claude, newest)])
+        let board = WorkBoard(entries: sharedEntries, sessions: registry.sessions)
+        XCTAssertEqual(board.items[0].mark, .open("claude:a:1"))
+        XCTAssertEqual(board.unlisted, ["claude:copy:1"])
+    }
+
+    func testEntriesWithDifferentSessionsAndNotesStayApart() {
+        let separate = entries([("A", [newest]), ("B", [older]), ("C", []), ("D", [])])
+        let board = WorkBoard(entries: separate, sessions: [])
+        XCTAssertEqual(board.items.map(\.entry.title), ["A", "B", "C", "D"])
+        XCTAssertTrue(board.items.allSatisfy { $0.others.isEmpty })
+    }
+
     func testInventoryConversationReplacesTheStoredOneButAMissingOneKeepsTheHookProof() {
         var registry = AgentRegistry()
         let terminal = TerminalIdentity(id: "a", generation: "1")
@@ -92,6 +158,14 @@ final class WorkBoardTests: XCTestCase {
         var enabled = loaded
         enabled.showsWorkEntries = true
         XCTAssertTrue(AppPreferences.load(try JSONEncoder().encode(enabled)).showsWorkEntries)
+    }
+
+    private func entries(_ spec: [(title: String, conversations: [String])]) -> [WorkEntry] {
+        ReportDocument(markdown: spec.map { entry in
+            "## 2026-10-06 — \(entry.title)\n- Sessões:\n" + entry.conversations.map {
+                "  - 2026-10-06 · Opus 5.5\n    cd /Users/test/app && claude -r \($0)"
+            }.joined(separator: "\n")
+        }.joined(separator: "\n\n")).entries
     }
 
     private func session(_ id: String, _ provider: AgentProvider, _ conversation: String?) -> AgentCandidate {

@@ -85,7 +85,7 @@ struct RailView: View {
         let cell = Group {
             if let session {
                 SessionButton(session: session, selected: store.content == session.id, reducedMotion: reducedMotion, messages: m,
-                    label: item.entry.title, context: store.contextPercent(session),
+                    label: m.title(of: item), context: store.contextPercent(session),
                     onFocus: { focused in tooltip(focused ? item.id : nil) }) { store.choose(item) }
             } else {
                 WorkButton(item: item, messages: m, onFocus: { focused in tooltip(focused ? item.id : nil) }) { store.choose(item) }
@@ -247,8 +247,8 @@ private struct WorkButton: View {
             .accessibilityLabel(accessibilityText)
     }
     private var accessibilityText: String {
-        if case .closed(let request) = item.mark { return "\(request.provider.displayName), \(item.entry.title), \(messages.text("terminal_closed"))" }
-        return "\(item.entry.title), \(messages.text("no_session"))"
+        if case .closed(let request) = item.mark { return "\(request.provider.displayName), \(messages.title(of: item)), \(messages.text("terminal_closed"))" }
+        return "\(messages.title(of: item)), \(messages.text("no_session"))"
     }
 }
 

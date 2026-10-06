@@ -43,6 +43,11 @@ struct SessionDetails: View {
                         Text(status).font(.system(size: 12)).lineLimit(4).foregroundStyle(DesignTokens.muted)
                             .fixedSize(horizontal: false, vertical: true)
                     }
+                    if !item.others.isEmpty {
+                        Text(messages.sharedSession(item.others.count) + ": " + item.others.map(\.title).joined(separator: " · "))
+                            .font(.system(size: 11)).lineLimit(3).foregroundStyle(DesignTokens.muted)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
             }
             agent
