@@ -14,7 +14,8 @@ import sys
 import uuid
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from agent_detect import detect_provider
+from agent_detect import CLAUDE, detect_provider
+from conversation_id import from_claude_registry, from_command_line
 
 PROTOCOL = 1
 PROTOCOL_OUTPUT = sys.stdout
@@ -91,6 +92,7 @@ class ProofBridge:
         self.palettes = {}
         self.inventory_cache = None
         self.process_cache = {}
+        self.utc_start_cache = {}
         self.screen_retry = None
         self.embedded = None
         self.status_seen = {}
@@ -122,6 +124,29 @@ class ProofBridge:
             self.process_cache[generation] = info
         return info
 
+    async def utc_start(self, pid, generation):
+        """Process start in the C/UTC `lstart` format Claude Code records; `processStart` stays in the user locale for hooks."""
+        if generation in self.utc_start_cache:
+            return self.utc_start_cache[generation]
+        value = None
+        try:
+            result = await asyncio.to_thread(subprocess.run, ["/bin/ps", "-p", str(pid), "-o", "lstart="],
+                                             capture_output=True, text=True, timeout=0.5,
+                                             env={**os.environ, "LC_ALL": "C", "TZ": "UTC"})
+            value = collapse(result.stdout) if result.returncode == 0 else None
+        except (OSError, subprocess.TimeoutExpired):
+            pass
+        if value:
+            self.utc_start_cache[generation] = value
+        return value
+
+    async def conversation(self, provider, pid, generation, command):
+        """Claude's registry follows `/clear` and `/resume`; the command line only knows the ID the process started with."""
+        found = None
+        if provider == CLAUDE:
+            found = from_claude_registry(pid, await self.utc_start(pid, generation))
+        return found or from_command_line(provider, command)
+
     async def describe(self, session, tab, fullscreen):
         values = dict(zip(VARIABLES, await asyncio.gather(*(session.async_get_variable(name) for name in VARIABLES))))
         generation = f'{values["creationTimeString"]}:{values["jobPid"]}:{values["tty"]}'
@@ -138,13 +163,16 @@ class ProofBridge:
         if valid_pid and not idle_shell:
             process_start, command = await self.process_info(values["jobPid"], generation)
             provider = detect_provider(job, command_line, title, command)
+        conversation = None
+        if valid_pid and provider:
+            conversation = await self.conversation(provider, values["jobPid"], generation, command or command_line)
         confirmed = bool(values["creationTimeString"] and valid_pid and str(values["tty"] or "").startswith("/dev/"))
         host = str(values["hostname"] or "")
         remote = job in ("ssh", "mosh", "mosh-client") or collapse(command).split(" ")[0].rsplit("/", 1)[-1] in ("ssh", "mosh", "mosh-client")
         local = (not bool(values["tmuxRole"]) and not remote and
                  host in ("", socket.gethostname(), socket.gethostname().split(".")[0]))
         return identity, {
-            "identity": identity, "name": session.name, "provider": provider,
+            "identity": identity, "name": session.name, "provider": provider, "conversation": conversation,
             "pid": str(values["jobPid"]), "processStart": process_start if provider else None, "tty": str(values["tty"]),
             "project": str(values["path"]), "tab": str(tab.tab_id),
             "columns": session.grid_size.width, "rows": session.grid_size.height,
@@ -173,6 +201,7 @@ class ProofBridge:
         rows = [row for _, row in described]
         live = {identity["generation"] for identity, _ in described}
         self.process_cache = {key: value for key, value in self.process_cache.items() if key in live}
+        self.utc_start_cache = {key: value for key, value in self.utc_start_cache.items() if key in live}
         return app, rows
 
     async def watch_events(self):

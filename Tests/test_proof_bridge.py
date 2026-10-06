@@ -99,6 +99,27 @@ class ProofBridgeBehaviorTests(unittest.TestCase):
         self.assertIsNone(rows["t3"]["provider"])
         self.assertEqual(rows["t1"]["processStart"], None)  # sem processo real no fixture; nada é inventado
 
+    def test_inventory_reports_the_conversation_from_the_claude_registry_before_the_command_line(self):
+        started = "aaaaaaaa-0000-4000-8000-000000000001"
+        current = "bbbbbbbb-0000-4000-8000-000000000002"
+        with tempfile.TemporaryDirectory() as home:
+            scenario = {"NOTCH_CONTROL_FIXTURE_AGENTS": "1", "HOME": home,
+                        "NOTCH_CONTROL_FIXTURE_CLAUDE_COMMAND": "claude -r " + started}
+            rows = {row["identity"]["id"]: row for row in self.bridge(scenario).request("inventory")["terminals"]}
+            self.assertEqual(rows["t1"]["conversation"], started)
+            self.assertIsNone(rows["t2"]["conversation"])
+            self.assertIsNone(rows["t3"]["conversation"])
+            # A real process stands in for Claude Code so `ps` can prove the registry belongs to it.
+            pid = os.getpid()
+            start = subprocess.run(["/bin/ps", "-p", str(pid), "-o", "lstart="], capture_output=True, text=True,
+                                   env={**os.environ, "LC_ALL": "C", "TZ": "UTC"}).stdout.strip()
+            registry = Path(home) / ".claude/sessions"
+            registry.mkdir(parents=True)
+            (registry / (str(pid) + ".json")).write_text(json.dumps({"pid": pid, "sessionId": current, "procStart": start}))
+            scenario["NOTCH_CONTROL_FIXTURE_CLAUDE_PID"] = str(pid)
+            rows = {row["identity"]["id"]: row for row in self.bridge(scenario).request("inventory")["terminals"]}
+            self.assertEqual(rows["t1"]["conversation"], current)
+
     def test_session_closing_during_inventory_is_dropped_without_failing_the_listing(self):
         bridge = Bridge({"NOTCH_CONTROL_FIXTURE_CLOSING_SESSION": "1"})
         self.addCleanup(bridge.close)
