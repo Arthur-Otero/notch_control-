@@ -33,7 +33,8 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
     var onLayout: (() -> Void)?
     var onActivate: (() -> Void)?
     var onSettings: (() -> Void)?
-    var onTooltip: ((AgentSession?) -> Void)?
+    /// Shows the balloon of a notch row by `RailRow.id`; nil hides it.
+    var onTooltip: ((String?) -> Void)?
     private var subscriptions: Set<AnyCancellable> = []
     private var alerts = AlertTracker()
     private var retry: Task<Void, Never>?
@@ -55,6 +56,37 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
     var selected: AgentSession? { registry.sessions.first { $0.id == content } }
     var presentedContent: String? { content ?? lastPanelContent }
     var presentedSession: AgentSession? { registry.sessions.first { $0.id == presentedContent } }
+    /// Work entries replace the session list only when the option is on and a work file is chosen.
+    var workBoard: WorkBoard? {
+        guard preferences.showsWorkEntries, preferences.workPath != nil else { return nil }
+        return WorkBoard(entries: work.document.entries, sessions: registry.sessions)
+    }
+    /// Work mode groups open entries, open sessions outside the file, then entries without a terminal, each in file order.
+    var railRows: [RailRow] {
+        guard let board = workBoard else { return registry.sessions.map(RailRow.session) }
+        let sessions = Dictionary(registry.sessions.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        var open: [RailRow] = [], closed: [RailRow] = []
+        for item in board.items {
+            if case .open(let id) = item.mark, let session = sessions[id] { open.append(.entry(item, session)) }
+            else { closed.append(.entry(item, nil)) }
+        }
+        let unlisted = board.unlisted.compactMap { sessions[$0] }.map(RailRow.session)
+        let groups = [open, unlisted, closed].filter { !$0.isEmpty }
+        return groups.enumerated().flatMap { index, rows in index == 0 ? rows : [.divider(index)] + rows }
+    }
+    var railCounts: (cells: Int, dividers: Int) {
+        let rows = railRows
+        let dividers = rows.filter { if case .divider = $0 { true } else { false } }.count
+        return (rows.count - dividers, dividers)
+    }
+    /// Context share of the session's own terminal generation, if its status bar reports it.
+    func contextPercent(_ session: AgentSession) -> Double? {
+        gateway.contextUsage[session.terminal.id].flatMap { $0.terminal == session.terminal ? $0.usedPercent : nil }
+    }
+    func railHeight(available: CGFloat) -> CGFloat {
+        let counts = railCounts
+        return NotchMetrics.height(sessions: counts.cells, dividers: counts.dividers, available: available)
+    }
     var panelOpen: Bool { content != nil }
     /// Working or waiting sessions keep the notch open. Idle and unknown may fold.
     var railExpanded: Bool {
@@ -92,7 +124,7 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
             guard let self, self.gateway.connected else { return }
             let candidates = terminals.compactMap { row -> AgentCandidate? in
                 guard row.local, row.identityConfirmed, let name = row.provider, let provider = AgentProvider(rawValue: name) else { return nil }
-                return AgentCandidate(terminal: row.identity, provider: provider, project: row.project, name: row.name)
+                return AgentCandidate(terminal: row.identity, provider: provider, project: row.project, name: row.name, conversation: row.conversation)
             }
             self.registry.reconcile(candidates)
             for session in self.registry.sessions {
@@ -127,6 +159,10 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
             self.scheduleHelperStart(after: ReconnectPolicy.delay(afterFailures: 1))
         }.store(in: &subscriptions)
         gateway.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &subscriptions)
+        work.$document.dropFirst().sink { [weak self] _ in
+            self?.objectWillChange.send()
+            DispatchQueue.main.async { self?.onLayout?() }
+        }.store(in: &subscriptions)
         gateway.$docked.dropFirst().sink { [weak self] _ in self?.onLayout?() }.store(in: &subscriptions)
         gateway.$dockFailed.dropFirst().sink { [weak self] _ in self?.onLayout?() }.store(in: &subscriptions)
         gateway.$snapshot.dropFirst().sink { [weak self] snapshot in
@@ -187,6 +223,15 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
         historyTab = false
         onLayout?(); onActivate?()
     }
+    /// An open entry brings its terminal forward, a closed one resumes its newest session, a note opens the work file.
+    func choose(_ item: WorkItem) {
+        switch item.mark {
+        case .open(let id): choose(id)
+        case .closed(let request): onTooltip?(nil); resume(request)
+        case .note:
+            if content == "report" { onTooltip?(nil); historyTab = false; onActivate?() } else { choose("report") }
+        }
+    }
     func showOlderHistory() { jumpRequested = false; olderHistory = true; gateway.loadOlderHistory() }
     func jumpToEnd() {
         olderHistory = false; jumpRequested = true; gateway.loadHistory()
@@ -228,7 +273,7 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
     func beginRailDrag(_ pointer: RailPoint) {
         let area = screen.visibleFrame
         let expanded = railExpanded
-        let height = expanded ? NotchMetrics.height(sessions: registry.sessions.count, available: area.height) : DesignTokens.pillHeight
+        let height = expanded ? railHeight(available: area.height) : DesignTokens.pillHeight
         let width = expanded ? DesignTokens.railWidth : DesignTokens.pillWidth
         let frame = RailGeometry.frame(area: .init(x: area.minX, y: area.minY, width: area.width, height: area.height),
             edge: preferences.edge, position: preferences.railPosition, width: width, height: height)
@@ -242,7 +287,7 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
         let target = NSScreen.screens.first(where: { $0.frame.contains(location) }) ?? screen
         let area = target.visibleFrame
         let expanded = railExpanded
-        let height = expanded ? NotchMetrics.height(sessions: registry.sessions.count, available: area.height) : DesignTokens.pillHeight
+        let height = expanded ? railHeight(available: area.height) : DesignTokens.pillHeight
         let placement = railDrag.placement(pointer: pointer,
             screenID: (target.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value,
             area: .init(x: area.minX, y: area.minY, width: area.width, height: area.height), height: height)
@@ -261,7 +306,7 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
         persistPreferences()
         let area = screen.visibleFrame
         let expanded = railExpanded
-        let height = expanded ? NotchMetrics.height(sessions: registry.sessions.count, available: area.height) : DesignTokens.pillHeight
+        let height = expanded ? railHeight(available: area.height) : DesignTokens.pillHeight
         let width = expanded ? DesignTokens.railWidth : DesignTokens.pillWidth
         let frame = RailGeometry.frame(area: .init(x: area.minX, y: area.minY, width: area.width, height: area.height),
             edge: preferences.edge, position: preferences.railPosition, width: width, height: height)
@@ -420,6 +465,20 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
                 noticeKey = "session_closed"; onActivate?(); return
             }
             if content == id { onActivate?() } else { choose(id) }
+        }
+    }
+}
+
+/// One row of the notch: a session, a work entry (with its open session), or a divider between work mode groups.
+enum RailRow: Identifiable {
+    case session(AgentSession)
+    case entry(WorkItem, AgentSession?)
+    case divider(Int)
+    var id: String {
+        switch self {
+        case .session(let session): session.id
+        case .entry(let item, _): item.id
+        case .divider(let index): "divider:\(index)"
         }
     }
 }

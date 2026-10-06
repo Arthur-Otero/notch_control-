@@ -9,10 +9,12 @@ public enum DesignTokens {
     public static let text = color(0xF3F4F6)
     public static let muted = color(0xB6BAC4)
     public static let danger = color(0xFF6B73)
+    public static let warning = color(0xFFC94D)
     public static let unknown = color(0x969CAA)
     public static let focus = color(0x88B8FF)
     public static let notch = color(0x000000)
     public static let ringTrack = color(0x303030)
+    public static let contextTrack = color(0x4A4A4A)
     public static let notchInk = color(0xFFFFFF)
     public static let activity = color(0x00FF88)
     public static let railWidth: CGFloat = 70

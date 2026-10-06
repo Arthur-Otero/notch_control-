@@ -40,7 +40,11 @@ Terminal, instância de processo e conversa são identidades diferentes. Cada bo
 
 A descoberta usa linha de comando, PID, TTY e início do processo. Eventos estruturados precisam de uma associação única com a instância; eventos tardios, de subagentes ou com identidade ambígua são descartados.
 
-`screen_status.py` lê o compositor de Claude Code, Codex e Cursor Agent. `account_usage.py` extrai somente limites reconhecidos no rodapé. Ausência de informação não vira sucesso, aprovação ou percentual inventado. O comportamento visual dos estados está em [status.md](status.md).
+O inventário também traz a conversa de cada instância (`conversation_id.py`). No Claude Code, a fonte é o registro por processo `~/.claude/sessions/<pid>.json`, aceito só quando `pid` e `procStart` batem com `ps -o lstart=` em `LC_ALL=C TZ=UTC`; o registro acompanha `/clear` e `/resume`. Sem ele, e nos outros CLIs, vale o ID da retomada na linha de comando. Hooks associados continuam preenchendo a conversa quando o inventário não a conhece.
+
+No modo do arquivo de trabalho, `ReportDocument.entries` separa o `work.md` por `##`, e `WorkBoard` compõe as entradas com as sessões abertas por provedor e conversa: a sessão aberta mais recente da entrada, a retomada da mais recente quando nenhuma está aberta, ou uma nota sem sessão. Sessões abertas que nenhum item mostra ficam à parte, para que uma decisão pendente nunca fique escondida.
+
+`screen_status.py` lê o compositor de Claude Code, Codex e Cursor Agent. `account_usage.py` extrai somente limites reconhecidos no rodapé, e `context_usage.py`, do mesmo rodapé, o contexto ocupado pela sessão. Ausência de informação não vira sucesso, aprovação ou percentual inventado. O comportamento visual dos estados está em [status.md](status.md).
 
 O uso pertence à conta e pode ser compartilhado por várias sessões. Mensagens de uso validam terminal/geração, IDs e percentuais entre 0 e 100. Leituras expiram em cinco minutos e não são persistidas.
 
@@ -50,13 +54,13 @@ O produto chama `reveal` para trazer a aba correta do iTerm2 à frente. O gatewa
 
 Input exige seleção, conexão e geração válidas; broadcast é suprimido. A restauração experimental compara identidade, layout e dimensões. Modos completos de teclado/colagem e ownership de resize por eventos ainda precisam de validação real. Splits/fullscreen não recebem resize experimental.
 
-Retomada mantém parser e coordenação no núcleo, mas não possui ação no leitor atual. Comandos de Markdown são texto. Resultado ambíguo de criação exige reconciliação antes de permitir outra tentativa.
+Retomada mantém parser e coordenação no núcleo e é acionada pela bolinha de uma entrada fechada no modo do arquivo de trabalho. No leitor, comandos de Markdown continuam texto. Resultado ambíguo de criação exige reconciliação antes de permitir outra tentativa.
 
 ## Arquivos e dados locais
 
 `ReportFileReader` lê UTF-8, estabiliza atualizações e observa substituição atômica. O leitor conserva o último conteúdo válido durante atualização ou erro; uma troca de arquivo reinicia a posição de leitura. `MarkdownRenderer` usa Foundation e AppKit, sem WebView.
 
-- `.notchcontrol/preferences.json`: posição, idioma, arquivos e alertas.
+- `.notchcontrol/preferences.json`: posição, idioma, arquivos, alertas e modo do arquivo de trabalho.
 - `.notchcontrol/sessions.json`: identidade, ordem e aliases; sem títulos, estados transitórios ou números de sessão.
 - `.notchcontrol/events/`: metadata sanitizada de hooks.
 - `.notchcontrol/hook-plan-*.json`: plano privado de configuração, incluindo o conteúdo anterior necessário para detectar concorrência.

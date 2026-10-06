@@ -11,10 +11,12 @@ colors:
   text: "#F3F4F6"
   muted: "#B6BAC4"
   danger: "#FF6B73"
+  warning: "#FFC94D"
   unknown: "#969CAA"
   focus: "#88B8FF"
   notch: "#000000"
   ringTrack: "#303030"
+  contextTrack: "#4A4A4A"
   notchInk: "#FFFFFF"
   activity: "#00FF88"
 typography:
@@ -111,6 +113,8 @@ Este documento define intenção visual e tokens. O frontmatter alimenta `script
 
 Notch e balão usam preto puro, logos brancos e trilha neutra `ringTrack`. `activity` é trabalho ou resultado não visto; `danger` acompanha `!` para decisão; `unknown` reduz a presença da sessão sem inventar estado. O significado completo está em [status.md](status.md).
 
+A barra de contexto, abaixo da bolinha e com a largura do anel, usa `activity` abaixo de 30%, `warning` abaixo de 70% e `danger` a partir de 70% do contexto da sessão, sobre a trilha `contextTrack`, um grau mais clara que `ringTrack` para a barra fina não sumir no preto. O anel continua dizendo o que o agente faz; a barra, quanto do contexto ele ocupa.
+
 Texto principal usa `text`, contexto usa `muted` e foco usa `focus`. Forma, texto e nome acessível complementam as cores. A aparência atual é escura; contraste e transparência seguem os recursos do macOS.
 
 ## Typography
@@ -121,7 +125,7 @@ O Markdown usa corpo de 13 pt, títulos de 26/21/17/15/14/13 pt e código monoes
 
 ## Layout
 
-O notch tem corpo de 70 pt e ícones de 44 pt: documento, divisor e sessões sem números. O documento fica fixo; a lista rola apenas quando excede a altura disponível, limitada a 600 pt. Tooltips flutuam sem alterar a lista.
+O notch tem corpo de 70 pt e ícones de 44 pt: documento, divisor e sessões sem números. O documento fica fixo; a lista rola apenas quando excede a altura disponível, limitada a 864 pt (dez sessões). Tooltips flutuam sem alterar a lista.
 
 O painel ocupa a altura útil e revela o conteúdo lateralmente, com o notch na borda interna. A largura do conteúdo fica estável durante a transição. O leitor preserva a posição ao receber atualização; trocar de arquivo volta ao topo. A zona de resize de 5 pt é transparente.
 

@@ -19,6 +19,12 @@ public struct AppPreferences: Codable, Sendable {
     public var waiting = AlertPreference()
     public var completed = AlertPreference()
     public var startAtLogin = false
+    /// Optional so preferences saved before the option existed still decode.
+    private var workMode: Bool?
+    public var showsWorkEntries: Bool {
+        get { workMode ?? false }
+        set { workMode = newValue }
+    }
     public init() {}
     public mutating func normalize() {
         railPosition = railPosition.isFinite ? min(1, max(0, railPosition)) : 0.5

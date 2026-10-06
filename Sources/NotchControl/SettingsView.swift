@@ -24,6 +24,8 @@ struct SettingsView: View {
             Section(m.text("report")) {
                 fileRow(store.preferences.workPath, key: "choose_work", history: false)
                 fileRow(store.preferences.historyPath, key: "choose_history", history: true)
+                Toggle(m.text("work_mode"), isOn: $store.preferences.showsWorkEntries).disabled(store.preferences.workPath == nil)
+                Text(m.text("work_mode_hint")).font(.caption).foregroundStyle(DesignTokens.muted)
             }
             Section(m.text("waiting")) { alertSettings($store.preferences.waiting) }
             Section(m.text("completed")) { alertSettings($store.preferences.completed) }
@@ -59,6 +61,7 @@ struct SettingsView: View {
             .onChange(of: store.preferences.railPosition) { _, _ in store.persistPreferences() }
             .onChange(of: store.preferences.panelWidth) { _, _ in store.persistPreferences() }
             .onChange(of: store.preferences.alwaysVisible) { _, _ in store.persistPreferences() }
+            .onChange(of: store.preferences.showsWorkEntries) { _, _ in store.persistPreferences() }
             .onChange(of: store.preferences.language) { _, _ in store.persistPreferences() }
             .onChange(of: store.preferences.waiting) { _, _ in store.persistPreferences() }
             .onChange(of: store.preferences.completed) { _, _ in store.persistPreferences() }

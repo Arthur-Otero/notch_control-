@@ -66,7 +66,8 @@ class Session:
         if os.environ.get("NOTCH_CONTROL_FIXTURE_AGENTS") == "1":
             # Valores observados no iTerm2 3.7.3: Claude Code (binário nomeado pela versão), Cursor Agent (node) e um shell.
             values.update({
-                "t1": {"jobName": "2.1.288", "commandLine": "claude", "processTitle": "claude"},
+                "t1": {"jobName": "2.1.288", "processTitle": "claude",
+                       "commandLine": os.environ.get("NOTCH_CONTROL_FIXTURE_CLAUDE_COMMAND", "claude")},
                 "t2": {"jobName": "node", "processTitle": "agent",
                        "commandLine": "agent --use-system-ca /Users/me/.local/share/cursor-agent/versions/1/index.js"},
                 "t3": {"jobName": "zsh", "commandLine": "-zsh", "processTitle": "zsh"},
@@ -185,7 +186,7 @@ class Window:
 
 class App:
     def __init__(self):
-        self.sessions = [Session("t1", 900101), Session("t2", 900102)]
+        self.sessions = [Session("t1", int(os.environ.get("NOTCH_CONTROL_FIXTURE_CLAUDE_PID", 900101))), Session("t2", 900102)]
         if os.environ.get("NOTCH_CONTROL_FIXTURE_AGENTS") == "1":
             self.sessions.append(Session("t3", 900103))
         if os.environ.get("NOTCH_CONTROL_FIXTURE_SPLIT") == "1":
