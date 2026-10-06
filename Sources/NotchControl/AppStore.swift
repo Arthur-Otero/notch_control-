@@ -92,7 +92,7 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
             guard let self, self.gateway.connected else { return }
             let candidates = terminals.compactMap { row -> AgentCandidate? in
                 guard row.local, row.identityConfirmed, let name = row.provider, let provider = AgentProvider(rawValue: name) else { return nil }
-                return AgentCandidate(terminal: row.identity, provider: provider, project: row.project, name: row.name)
+                return AgentCandidate(terminal: row.identity, provider: provider, project: row.project, name: row.name, conversation: row.conversation)
             }
             self.registry.reconcile(candidates)
             for session in self.registry.sessions {

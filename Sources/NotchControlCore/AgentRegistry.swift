@@ -19,9 +19,11 @@ public struct AgentCandidate: Equatable, Sendable {
     public let provider: AgentProvider
     public let project: String
     public let name: String
+    public let conversation: String?
     public var key: String { provider.rawValue + ":" + terminal.id + ":" + terminal.generation }
-    public init(terminal: TerminalIdentity, provider: AgentProvider, project: String, name: String) {
+    public init(terminal: TerminalIdentity, provider: AgentProvider, project: String, name: String, conversation: String? = nil) {
         self.terminal = terminal; self.provider = provider; self.project = project; self.name = name
+        self.conversation = conversation?.lowercased()
     }
 }
 
@@ -78,15 +80,17 @@ public struct AgentRegistry: Codable, Sendable {
     public private(set) var sessions: [AgentSession] = []
     public init() {}
 
+    /// A candidate without a conversation keeps the one a hook already proved.
     public mutating func reconcile(_ candidates: [AgentCandidate]) {
         let keys = Set(candidates.map(\.key))
         sessions.removeAll { !keys.contains($0.id) }
         for candidate in candidates {
             if let i = sessions.firstIndex(where: { $0.id == candidate.key }) {
                 sessions[i].name = candidate.name; sessions[i].project = candidate.project
+                sessions[i].conversation = candidate.conversation ?? sessions[i].conversation
             } else {
                 sessions.append(AgentSession(id: candidate.key, terminal: candidate.terminal, provider: candidate.provider,
-                                             name: candidate.name, project: candidate.project))
+                                             name: candidate.name, project: candidate.project, conversation: candidate.conversation))
             }
         }
     }

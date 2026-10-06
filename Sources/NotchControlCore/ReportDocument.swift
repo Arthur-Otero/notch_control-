@@ -15,17 +15,27 @@ public struct ReportCommand: Identifiable, Equatable, Sendable {
     public let literal: String
     public let resume: ResumeRequest?
 }
+/// One `##` section of a work file. Sessions keep the file order, newest first.
+public struct WorkEntry: Identifiable, Equatable, Sendable {
+    public let id: String
+    public let title: String
+    public let status: String?
+    public let sessions: [ResumeRequest]
+}
 public struct ReportDocument: Sendable {
     public let markdown: String
     public let commands: [ReportCommand]
+    public let entries: [WorkEntry]
     public init(markdown: String) {
         self.markdown = markdown
-        commands = markdown.components(separatedBy: .newlines).enumerated().compactMap { index, line in
+        let lines = markdown.components(separatedBy: .newlines)
+        commands = lines.enumerated().compactMap { index, line in
             var literal = line.trimmingCharacters(in: .whitespaces)
             if literal.hasPrefix("`"), literal.hasSuffix("`") { literal = String(literal.dropFirst().dropLast()) }
             guard literal.hasPrefix("cd ") else { return nil }
             return ReportCommand(id: index, literal: literal, resume: Self.parse(literal))
         }
+        entries = Self.entries(lines, commands: commands)
     }
     public var readableMarkdown: AttributedString {
         guard let parsed = try? AttributedString(markdown: markdown, options: .init(interpretedSyntax: .full)) else { return AttributedString(markdown) }
@@ -51,6 +61,24 @@ public struct ReportDocument: Sendable {
             output.append(AttributedString(parsed[run.range]))
         }
         return output
+    }
+    /// IDs come from the title, not the heading date, which changes on every update.
+    private static func entries(_ lines: [String], commands: [ReportCommand]) -> [WorkEntry] {
+        let headings = lines.indices.filter { lines[$0].hasPrefix("## ") }
+        var seen: [String: Int] = [:]
+        return headings.enumerated().map { position, start in
+            let body = start + 1 ..< (position + 1 < headings.count ? headings[position + 1] : lines.count)
+            let heading = lines[start].dropFirst(3).trimmingCharacters(in: .whitespaces)
+            let dated = heading.replacingOccurrences(of: #"^\d{4}-\d{2}-\d{2}(\s+\d{1,2}:\d{2})?\s+[—–-]\s+"#, with: "", options: .regularExpression)
+            let title = dated.isEmpty ? heading : dated
+            let status = lines[body].lazy.map { $0.trimmingCharacters(in: .whitespaces) }.first { $0.hasPrefix("- Status:") }
+                .map { $0.dropFirst("- Status:".count).trimmingCharacters(in: .whitespaces) }
+            let count = (seen[title] ?? 0) + 1
+            seen[title] = count
+            return WorkEntry(id: "work:" + title + (count > 1 ? "#\(count)" : ""), title: title,
+                             status: status?.isEmpty == false ? status : nil,
+                             sessions: commands.filter { body.contains($0.id) }.compactMap(\.resume))
+        }
     }
     private static func parse(_ literal: String) -> ResumeRequest? {
         guard let words = tokenize(literal), words.count == 6, words[0] == "cd", words[2] == "&&" else { return nil }

@@ -8,6 +8,7 @@ public struct TerminalDescriptor: Decodable, Identifiable {
     public let identity: TerminalIdentity
     public let name: String
     public let provider: String?
+    public let conversation: String?
     public let project: String
     public let columns: Int
     public let rows: Int
