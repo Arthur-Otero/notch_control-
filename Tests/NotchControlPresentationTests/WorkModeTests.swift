@@ -10,7 +10,7 @@ final class WorkModeTests: XCTestCase {
     private let closed = "00000000-0000-0000-0000-0000000000b2"
 
     @MainActor
-    func testWorkEntriesReplaceSessionsAndKeepUnlistedSessionsBelowADivider() throws {
+    func testWorkEntriesAreGroupedByOpenTerminalWithUnlistedSessionsInBetween() throws {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let state = folder.appendingPathComponent(".notchcontrol")
         try FileManager.default.createDirectory(at: state, withIntermediateDirectories: true)
@@ -19,17 +19,17 @@ final class WorkModeTests: XCTestCase {
         try """
         # Work
 
-        ## 2026-10-06 08:00 — Aberta
+        ## 2026-10-06 08:00 — Fechada
         - Sessões:
           - 2026-10-06 · Opus 5.5
-            cd /Users/test/open && claude -r \(open)
-        - Status: Rodando no terminal.
-
-        ## 2026-10-05 18:00 — Fechada
-        - Sessões:
-          - 2026-10-05 · Opus 5.5
             cd '/Users/test/closed project' && claude -r \(closed)
         - Status: Lib pronta no PR #45; falta integrar no app e validar no aparelho, depois abrir o PR e esperar a revisão do time.
+
+        ## 2026-10-05 18:00 — Aberta
+        - Sessões:
+          - 2026-10-05 · Opus 5.5
+            cd /Users/test/open && claude -r \(open)
+        - Status: Rodando no terminal.
 
         ## 2026-10-04 12:00 — Revisar PR do time
         - Status: aguardando o autor.
@@ -51,15 +51,15 @@ final class WorkModeTests: XCTestCase {
         while store.work.document.entries.count < 3, Date() < deadline { RunLoop.main.run(until: Date().addingTimeInterval(0.1)) }
 
         let rows = store.railRows
-        XCTAssertEqual(rows.map(\.id), ["work:Aberta", "work:Fechada", "work:Revisar PR do time", "divider", "codex:codex-tab:1"])
-        guard case .entry(let openItem, let openSession) = rows[0], case .entry(let closedItem, .none) = rows[1],
-              case .entry(let noteItem, .none) = rows[2] else { return XCTFail("Unexpected rows \(rows.map(\.id))") }
+        XCTAssertEqual(rows.map(\.id), ["work:Aberta", "divider:1", "codex:codex-tab:1", "divider:2", "work:Fechada", "work:Revisar PR do time"])
+        guard case .entry(let openItem, let openSession) = rows[0], case .entry(let closedItem, .none) = rows[4],
+              case .entry(let noteItem, .none) = rows[5] else { return XCTFail("Unexpected rows \(rows.map(\.id))") }
         XCTAssertEqual(openSession?.id, "claude:claude-tab:1")
         XCTAssertEqual(closedItem.mark, .closed(try XCTUnwrap(ResumeRequest(provider: .claude, conversation: closed, directory: "/Users/test/closed project"))))
         XCTAssertEqual(noteItem.mark, .note)
         XCTAssertEqual(store.railCounts.cells, 4)
-        XCTAssertEqual(store.railCounts.dividers, 1)
-        XCTAssertEqual(store.railHeight(available: 2000), NotchMetrics.contentHeight(sessions: 4, dividers: 1))
+        XCTAssertEqual(store.railCounts.dividers, 2)
+        XCTAssertEqual(store.railHeight(available: 2000), NotchMetrics.contentHeight(sessions: 4, dividers: 2))
 
         for language in [InterfaceLanguage.portuguese, .english] {
             for (name, session, item) in [("open", openSession, openItem), ("closed", nil, closedItem), ("note", nil, noteItem)] {
@@ -80,6 +80,9 @@ final class WorkModeTests: XCTestCase {
         XCTAssertEqual(store.noticeKey, "connection_unavailable")
         store.choose(noteItem)
         XCTAssertEqual(store.content, "report")
+
+        XCTAssertEqual(NotchMetrics.height(sessions: 10, available: 2000), NotchMetrics.contentHeight(sessions: 10))
+        XCTAssertTrue(NotchMetrics.needsScrolling(sessions: 11, available: 2000))
 
         store.preferences.showsWorkEntries = false
         XCTAssertEqual(store.railRows.map(\.id), ["claude:claude-tab:1", "codex:codex-tab:1"])

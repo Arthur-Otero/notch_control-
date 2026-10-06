@@ -21,7 +21,7 @@ Com **Mostrar entradas do arquivo de trabalho no notch** ligado, cada bolinha é
 | Qualquer indicador acima | A sessão mais recente da entrada que está aberta no iTerm2. | Traz a aba para a frente. |
 | Logo na cor da trilha, sem anel | Nenhuma sessão da entrada tem terminal aberto. | Retoma a sessão mais recente numa aba nova. |
 | Documento na cor da trilha | A entrada não lista sessões. | Abre o arquivo de trabalho. |
-| Linha abaixo das entradas | Separa as sessões abertas que nenhuma entrada mostra. | — |
+| Linha entre grupos | Separa, nesta ordem: entradas com terminal aberto, sessões abertas fora do arquivo e entradas sem terminal aberto. | — |
 
 O tooltip em inglês chama o `!` de "Waiting for input" e o motivo de "Approval requested" ou "Question pending". Em português: "Esperando resposta", "Aprovação pendente" ou "Pergunta pendente". Isso só aparece junto com o `!`.
 

@@ -3,6 +3,8 @@ import SwiftUI
 
 public enum NotchMetrics {
     public static var cellHeight: CGFloat { DesignTokens.iconSize }
+    /// Ten sessions fit before the list scrolls.
+    public static let maximumHeight: CGFloat = 864
     /// A divider is a 1 pt line that takes one more cell spacing between the rows around it.
     public static func contentHeight(sessions: Int, dividers: Int = 0) -> CGFloat {
         let rows = CGFloat(max(0, sessions)) * cellHeight + CGFloat(max(0, sessions - 1)) * DesignTokens.cellSpacing
@@ -11,7 +13,7 @@ public enum NotchMetrics {
         return fixed + rows
     }
     public static func height(sessions: Int, dividers: Int = 0, available: CGFloat) -> CGFloat {
-        min(max(0, available), min(600, contentHeight(sessions: sessions, dividers: dividers)))
+        min(max(0, available), min(maximumHeight, contentHeight(sessions: sessions, dividers: dividers)))
     }
     public static func needsScrolling(sessions: Int, dividers: Int = 0, available: CGFloat) -> Bool {
         sessions > 0 && contentHeight(sessions: sessions, dividers: dividers) > height(sessions: sessions, dividers: dividers, available: available)

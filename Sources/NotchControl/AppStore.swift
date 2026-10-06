@@ -61,15 +61,18 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
         guard preferences.showsWorkEntries, preferences.workPath != nil else { return nil }
         return WorkBoard(entries: work.document.entries, sessions: registry.sessions)
     }
+    /// Work mode groups open entries, open sessions outside the file, then entries without a terminal, each in file order.
     var railRows: [RailRow] {
         guard let board = workBoard else { return registry.sessions.map(RailRow.session) }
         let sessions = Dictionary(registry.sessions.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-        let entries = board.items.map { item -> RailRow in
-            if case .open(let id) = item.mark { return .entry(item, sessions[id]) }
-            return .entry(item, nil)
+        var open: [RailRow] = [], closed: [RailRow] = []
+        for item in board.items {
+            if case .open(let id) = item.mark, let session = sessions[id] { open.append(.entry(item, session)) }
+            else { closed.append(.entry(item, nil)) }
         }
         let unlisted = board.unlisted.compactMap { sessions[$0] }.map(RailRow.session)
-        return entries + (entries.isEmpty || unlisted.isEmpty ? [] : [.divider]) + unlisted
+        let groups = [open, unlisted, closed].filter { !$0.isEmpty }
+        return groups.enumerated().flatMap { index, rows in index == 0 ? rows : [.divider(index)] + rows }
     }
     var railCounts: (cells: Int, dividers: Int) {
         let rows = railRows
@@ -462,16 +465,16 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
     }
 }
 
-/// One row of the notch: a session, a work entry (with its open session), or the divider before unlisted sessions.
+/// One row of the notch: a session, a work entry (with its open session), or a divider between work mode groups.
 enum RailRow: Identifiable {
     case session(AgentSession)
     case entry(WorkItem, AgentSession?)
-    case divider
+    case divider(Int)
     var id: String {
         switch self {
         case .session(let session): session.id
         case .entry(let item, _): item.id
-        case .divider: "divider"
+        case .divider(let index): "divider:\(index)"
         }
     }
 }

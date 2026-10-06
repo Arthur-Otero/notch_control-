@@ -104,7 +104,7 @@ Com um arquivo de trabalho escolhido, ligue **Preferências → Relatório → M
 | Nenhuma sessão aberta | Logo do agente na cor da trilha | Retoma a sessão mais recente numa aba nova |
 | Sem sessões | Documento na cor da trilha | Abre o painel do arquivo de trabalho |
 
-Sessões abertas que nenhuma entrada mostra aparecem abaixo de um separador. O balão de uma entrada mostra o título, o estado, o `Status` e a pasta. Para ligar a sessão aberta à entrada, o app usa o registro de sessões do Claude Code e, nos outros CLIs, o ID passado na retomada (`codex resume <id>`, `agent --resume <id>`).
+O notch agrupa as bolinhas, separadas por divisórias: primeiro as entradas com terminal aberto, depois as sessões abertas que nenhuma entrada mostra e, por último, as entradas sem terminal aberto. Dentro de cada grupo vale a ordem do arquivo. O balão de uma entrada mostra o título, o estado, o `Status` e a pasta. Para ligar a sessão aberta à entrada, o app usa o registro de sessões do Claude Code e, nos outros CLIs, o ID passado na retomada (`codex resume <id>`, `agent --resume <id>`).
 
 ### Hooks opcionais
 
