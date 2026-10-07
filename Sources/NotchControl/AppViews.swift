@@ -77,11 +77,12 @@ struct RailView: View {
         }
     }
     /// Same action and balloon as the bubble beside it; the bubble already carries the accessible name.
-    private func titleLabel(id: String, primary: String, secondary: String?, action: @escaping () -> Void) -> some View {
+    /// A closed or unrecognized session dims its title slightly, echoing its faded bubble.
+    private func titleLabel(id: String, primary: String, secondary: String?, dimmed: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(primary).font(.system(size: 13, weight: .medium)).lineLimit(secondary == nil ? 2 : 1)
-                    .foregroundStyle(DesignTokens.notchInk)
+                    .foregroundStyle(DesignTokens.notchInk.opacity(dimmed ? 0.85 : 1))
                 if let secondary { Text(secondary).font(.system(size: 11)).lineLimit(1).foregroundStyle(DesignTokens.muted) }
             }.frame(maxWidth: .infinity, alignment: .leading)
              .padding(right ? .leading : .trailing, 16).padding(right ? .trailing : .leading, 6)
@@ -114,11 +115,12 @@ struct RailView: View {
         switch row {
         case .session(let session):
             titled { sessionRow(session) } title: {
-                titleLabel(id: session.id, primary: session.title, secondary: session.projectName) { store.choose(session.id) }
+                titleLabel(id: session.id, primary: session.title, secondary: session.projectName, dimmed: session.state == .unknown) { store.choose(session.id) }
             }
         case .entry(let item, let session):
             titled { entryRow(item, session: session) } title: {
-                titleLabel(id: item.id, primary: item.entry.title, secondary: item.others.isEmpty ? nil : m.sharedSession(item.others.count)) { store.choose(item) }
+                titleLabel(id: item.id, primary: item.entry.title, secondary: item.others.isEmpty ? nil : m.sharedSession(item.others.count),
+                           dimmed: session == nil) { store.choose(item) }
             }
         case .divider:
             titled { Rectangle().fill(DesignTokens.ringTrack).frame(width: DesignTokens.iconSize, height: 1).accessibilityHidden(true) } title: { Color.clear.frame(height: 1) }
