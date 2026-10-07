@@ -87,8 +87,7 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
     }
     /// Expanded rail window: the inner tab, the titles when open, and the bubble column.
     var railWindowWidth: CGFloat { NotchMetrics.tabDepth + DesignTokens.railWidth + (titlesOpen ? NotchMetrics.titlesWidth : 0) }
-    /// Folded, the window holds the pill and its tab.
-    func railFrameWidth(expanded: Bool) -> CGFloat { expanded ? railWindowWidth : DesignTokens.pillWidth + NotchMetrics.tabDepth }
+    func railFrameWidth(expanded: Bool) -> CGFloat { expanded ? railWindowWidth : DesignTokens.pillWidth }
     func toggleTitles() { titlesOpen.toggle(); onTooltip?(nil); onLayout?() }
     func railHeight(available: CGFloat) -> CGFloat {
         let counts = railCounts

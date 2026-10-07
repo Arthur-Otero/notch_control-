@@ -125,7 +125,7 @@ O Markdown usa corpo de 13 pt, títulos de 26/21/17/15/14/13 pt e código monoes
 
 ## Layout
 
-O notch tem corpo de 70 pt e ícones de 44 pt: documento, divisor e sessões sem números. O documento fica fixo; a lista rola apenas quando excede a altura disponível, limitada a 864 pt (dez sessões). Tooltips flutuam sem alterar a lista. Uma aba de 14 × 60 pt, no meio da lateral interna, abre e fecha uma coluna de 230 pt com o título de cada bolinha na mesma linha dela; a coluna rola junto com as bolinhas, e o notch não recolhe enquanto ela está aberta. Recolhido, o notch mostra uma aba menor, de 40 pt, que abre o notch já com os títulos; ela fica fora da área de hover da pílula para não expandir o notch antes do clique.
+O notch tem corpo de 70 pt e ícones de 44 pt: documento, divisor e sessões sem números. O documento fica fixo; a lista rola apenas quando excede a altura disponível, limitada a 864 pt (dez sessões). Tooltips flutuam sem alterar a lista. Uma aba de 14 × 60 pt, no meio da lateral interna, abre e fecha uma coluna de 230 pt com o título de cada bolinha na mesma linha dela; a coluna rola junto com as bolinhas, e o notch não recolhe enquanto ela está aberta. Recolhida, a pílula mostra a mesma seta: o primeiro clique abre as bolinhas e o segundo, na aba do notch aberto, abre os títulos.
 
 O painel ocupa a altura útil e revela o conteúdo lateralmente, com o notch na borda interna. A largura do conteúdo fica estável durante a transição. O leitor preserva a posição ao receber atualização; trocar de arquivo volta ao topo. A zona de resize de 5 pt é transparente.
 

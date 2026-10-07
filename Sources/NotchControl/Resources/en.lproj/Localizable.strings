@@ -45,7 +45,7 @@
 "empty_report" = "This file has no content yet.";
 "reading_report" = "Reading file…";
 "drag_notch" = "Drag the black area to move the notch. Right-click opens settings.";
-"open_notch" = "Open report; drag to move the notch. Right-click opens settings.";
+"open_notch" = "Show the sessions; drag to move the notch. Right-click opens settings.";
 "missing_report" = "Open a Markdown file to read it with its formatting preserved.";
 "read_failed" = "Unable to read the file. The last version remains available.";
 "file_unavailable" = "File unavailable. Choose another path.";

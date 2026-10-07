@@ -82,7 +82,7 @@ final class WorkModeTests: XCTestCase {
             XCTAssertEqual(store.railWindowWidth, NotchMetrics.tabDepth + DesignTokens.railWidth)
             for edge in [PanelEdge.right, .left] {
                 store.preferences.edge = edge
-                XCTAssertEqual(store.railFrameWidth(expanded: false), DesignTokens.pillWidth + NotchMetrics.tabDepth)
+                XCTAssertEqual(store.railFrameWidth(expanded: false), DesignTokens.pillWidth)
                 try render(FoldedRailView(store: store).frame(width: store.railFrameWidth(expanded: false), height: DesignTokens.pillHeight)
                     .background(Color(red: 0.5, green: 0.5, blue: 0.5)), "work-pill" + (edge == .left ? "-left" : ""))
                 for (open, name) in [(false, "work-rail"), (true, "work-rail-titles")] {
