@@ -72,10 +72,10 @@ final class WindowCoordinator {
         let area = store.screen.visibleFrame
         let open = store.panelOpen
         let expanded = store.railExpanded
-        let width = expanded ? DesignTokens.railWidth : DesignTokens.pillWidth
+        let width = expanded ? store.railWindowWidth : DesignTokens.pillWidth
         let height = expanded ? store.railHeight(available: area.height) : min(area.height, DesignTokens.pillHeight)
         let screen = ScreenArea(x: area.minX, y: area.minY, width: area.width, height: area.height)
-        let layout = PanelLayout(screen: screen, edge: store.preferences.edge, preferredWidth: store.preferences.panelWidth, railWidth: DesignTokens.railWidth)
+        let layout = PanelLayout(screen: screen, edge: store.preferences.edge, preferredWidth: store.preferences.panelWidth, railWidth: store.railWindowWidth)
         let contentWidth = open ? store.dragWidth.map { min(layout.maximumWidth, max(1, $0)) } ?? layout.content.width : 0
         let frame = RailGeometry.frame(area: screen, edge: store.preferences.edge, position: store.preferences.railPosition, width: width, height: height)
         let direction: CGFloat = store.preferences.edge == .left ? 1 : -1
@@ -92,7 +92,7 @@ final class WindowCoordinator {
         let sashFrame = NSRect(x: store.preferences.edge == .left ? fullPanel.maxX - handle : fullPanel.minX,
                                y: fullPanel.minY, width: handle, height: max(1, fullPanel.height - header))
         let changed = open != wasOpen || expanded != wasExpanded
-        let resized = expanded && wasExpanded && lastRailFrame?.height != railFrame.height
+        let resized = expanded && wasExpanded && (lastRailFrame?.height != railFrame.height || lastRailFrame?.width != railFrame.width)
         guard changed || lastRailFrame != railFrame || lastPanelFrame != panelFrame else { return }
         lastRailFrame = railFrame; lastPanelFrame = panelFrame
         let animate = (changed || resized) && !store.draggingRail && store.dragWidth == nil && rail.isVisible
@@ -237,7 +237,7 @@ private struct PanelSurface: View {
     private var contentWidth: CGFloat {
         let area = store.screen.visibleFrame
         let layout = PanelLayout(screen: .init(x: area.minX, y: area.minY, width: area.width, height: area.height), edge: store.preferences.edge,
-                                 preferredWidth: store.preferences.panelWidth, railWidth: DesignTokens.railWidth)
+                                 preferredWidth: store.preferences.panelWidth, railWidth: store.railWindowWidth)
         return store.dragWidth.map { min(layout.maximumWidth, max(1, $0)) } ?? layout.content.width
     }
     private var resizeHandle: some View {

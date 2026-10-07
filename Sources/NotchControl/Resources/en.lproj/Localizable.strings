@@ -147,3 +147,5 @@
 "no_session" = "No session";
 "note_hint" = "Click to open the work file.";
 "context" = "Context";
+"show_titles" = "Show titles";
+"hide_titles" = "Hide titles";

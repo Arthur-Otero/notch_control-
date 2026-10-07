@@ -79,8 +79,20 @@ final class WorkModeTests: XCTestCase {
             }
         }
         if !NSScreen.screens.isEmpty {
-            try render(RailView(store: store).environment(\.notchPreview, true).frame(width: DesignTokens.railWidth, height: store.railHeight(available: 2000))
-                .background(Color(red: 0.5, green: 0.5, blue: 0.5)), "work-rail")
+            XCTAssertEqual(store.railWindowWidth, NotchMetrics.tabDepth + DesignTokens.railWidth)
+            for edge in [PanelEdge.right, .left] {
+                store.preferences.edge = edge
+                for (open, name) in [(false, "work-rail"), (true, "work-rail-titles")] {
+                    store.titlesOpen = open
+                    XCTAssertTrue(store.railExpanded || !open)
+                    try render(RailView(store: store).environment(\.notchPreview, true).frame(width: store.railWindowWidth, height: store.railHeight(available: 2000))
+                        .background(Color(red: 0.5, green: 0.5, blue: 0.5)), name + (edge == .left ? "-left" : ""))
+                }
+            }
+            store.preferences.edge = .right
+            XCTAssertEqual(store.railWindowWidth, NotchMetrics.tabDepth + DesignTokens.railWidth + NotchMetrics.titlesWidth)
+            store.toggleTitles()
+            XCTAssertFalse(store.titlesOpen)
         }
 
         store.choose(closedItem)

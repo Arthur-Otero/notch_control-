@@ -147,3 +147,5 @@
 "no_session" = "Sem sessão";
 "note_hint" = "Clique para abrir o arquivo de trabalho.";
 "context" = "Contexto";
+"show_titles" = "Mostrar títulos";
+"hide_titles" = "Ocultar títulos";
