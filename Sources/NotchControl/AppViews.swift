@@ -20,15 +20,19 @@ struct RailView: View {
     var body: some View {
         GeometryReader { geometry in
         ZStack(alignment: .top) {
-            SideNotchShape(edge: store.preferences.edge).fill(DesignTokens.notch)
+            SideNotchShape(edge: store.preferences.edge, tab: NotchMetrics.tabDepth, tabHeight: NotchMetrics.tabHeight).fill(DesignTokens.notch)
             VStack(spacing: 0) {
-            Button { store.choose("report") } label: {
-                ZStack {
-                    Image(systemName: "doc.text").font(.system(size: DesignTokens.glyphSize))
-                    if store.content == "report" { Circle().strokeBorder(DesignTokens.notchInk, lineWidth: 1).padding(-3) }
-                }.frame(width: DesignTokens.iconSize, height: DesignTokens.iconSize)
-            }.buttonStyle(.plain).help(m.text("report")).accessibilityLabel(m.text("report"))
-            Rectangle().fill(DesignTokens.ringTrack).frame(width: DesignTokens.iconSize, height: 1).padding(.top, 12).padding(.bottom, 20)
+            titled {
+                VStack(spacing: 0) {
+                    Button { store.choose("report") } label: {
+                        ZStack {
+                            Image(systemName: "doc.text").font(.system(size: DesignTokens.glyphSize))
+                            if store.content == "report" { Circle().strokeBorder(DesignTokens.notchInk, lineWidth: 1).padding(-3) }
+                        }.frame(width: DesignTokens.iconSize, height: DesignTokens.iconSize)
+                    }.buttonStyle(.plain).help(m.text("report")).accessibilityLabel(m.text("report"))
+                    Rectangle().fill(DesignTokens.ringTrack).frame(width: DesignTokens.iconSize, height: 1).padding(.top, 12).padding(.bottom, 20)
+                }
+            } title: { Color.clear.frame(height: 1) }
             if preview { sessionRows.frame(maxHeight: .infinity, alignment: .top).clipped() }
             else {
                 ScrollView(.vertical) { sessionRows }
@@ -38,15 +42,20 @@ struct RailView: View {
             }
             }.padding(.top, DesignTokens.flare + DesignTokens.topPadding)
              .padding(.bottom, DesignTokens.flare + DesignTokens.bottomPadding)
+             .padding(right ? .leading : .trailing, NotchMetrics.tabDepth)
         }.foregroundStyle(DesignTokens.notchInk)
-         .frame(width: DesignTokens.railWidth, height: geometry.size.height, alignment: .top)
-         .frame(width: geometry.size.width, alignment: store.preferences.edge == .left ? .leading : .trailing)
+         .frame(width: store.railWindowWidth, height: geometry.size.height, alignment: .top)
+         .frame(width: geometry.size.width, alignment: right ? .trailing : .leading)
          .clipped()
-         .overlay(alignment: .top) { if !preview { bodyDrag().frame(height: bodyDragTop) } }
-         .overlay(alignment: .bottom) { if !preview { bodyDrag().frame(height: bodyDragBottom) } }
-         .overlay(alignment: .topLeading) { if !preview { bodyDrag().frame(width: bodyDragGutter, height: bodyDragMiddle(geometry.size.height)).padding(.top, bodyDragTop) } }
-         .overlay(alignment: .topTrailing) { if !preview && !needsScrolling { bodyDrag().frame(width: bodyDragGutter, height: bodyDragMiddle(geometry.size.height)).padding(.top, bodyDragTop) } }
-        }.frame(width: DesignTokens.railWidth)
+         .overlay(alignment: right ? .topTrailing : .topLeading) { if !preview { bodyDrag().frame(width: DesignTokens.railWidth, height: bodyDragTop) } }
+         .overlay(alignment: right ? .bottomTrailing : .bottomLeading) { if !preview { bodyDrag().frame(width: DesignTokens.railWidth, height: bodyDragBottom) } }
+         .overlay(alignment: .topLeading) { if !preview { bodyDrag().frame(width: bodyDragGutter, height: bodyDragMiddle(geometry.size.height)).padding(.top, bodyDragTop).padding(.leading, right ? innerInset : 0) } }
+         .overlay(alignment: .topTrailing) { if !preview && !needsScrolling { bodyDrag().frame(width: bodyDragGutter, height: bodyDragMiddle(geometry.size.height)).padding(.top, bodyDragTop).padding(.trailing, right ? 0 : innerInset) } }
+         .overlay(alignment: right ? .leading : .trailing) { titlesTab }
+         .overlay(alignment: right ? .topTrailing : .topLeading) {
+            if !store.panelOpen { pinButton.frame(width: DesignTokens.railWidth).padding(.top, DesignTokens.flare + 10) }
+         }
+        }
             .onHover(perform: store.setHover)
             .onChange(of: store.content) { _, _ in hoverTask?.cancel(); store.onTooltip?(nil) }
             .onChange(of: store.railRows.map(\.id)) { _, _ in hoverTask?.cancel(); store.onTooltip?(nil) }
@@ -58,6 +67,48 @@ struct RailView: View {
                     HStack { Button(m.text("cancel")) { store.renameID = nil }; Spacer(); Button(m.text("save"), action: store.saveRename).keyboardShortcut(.defaultAction) }
                 }.padding(DesignTokens.content).frame(width: 300).background(DesignTokens.surface)
             }
+    }
+    private var right: Bool { store.preferences.edge == .right }
+    /// Room on the inner side of the bubble column: the tab and, when open, the titles.
+    private var innerInset: CGFloat { store.railWindowWidth - DesignTokens.railWidth }
+    /// Bubble column plus, when the titles are open, the title column on the inner side.
+    private func titled<Bubble: View, Title: View>(@ViewBuilder _ bubble: () -> Bubble, @ViewBuilder title: () -> Title) -> some View {
+        HStack(spacing: 0) {
+            if right && store.titlesOpen { title().frame(width: NotchMetrics.titlesWidth, alignment: .leading) }
+            bubble().frame(width: DesignTokens.railWidth)
+            if !right && store.titlesOpen { title().frame(width: NotchMetrics.titlesWidth, alignment: .leading) }
+        }
+    }
+    /// Same action and balloon as the bubble beside it; the bubble already carries the accessible name.
+    /// A closed or unrecognized session dims its title slightly, echoing its faded bubble.
+    private func titleLabel(id: String, primary: String, secondary: String?, dimmed: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(primary).font(.system(size: 13, weight: .medium)).lineLimit(secondary == nil ? 2 : 1)
+                    .foregroundStyle(DesignTokens.notchInk.opacity(dimmed ? 0.8 : 1))
+                if let secondary { Text(secondary).font(.system(size: 11)).lineLimit(1).foregroundStyle(DesignTokens.muted) }
+            }.frame(maxWidth: .infinity, alignment: .leading)
+             .padding(right ? .leading : .trailing, 16).padding(right ? .trailing : .leading, 6)
+             .contentShape(Rectangle())
+        }.buttonStyle(.plain).onHover { inside in tooltip(inside ? id : nil) }.accessibilityHidden(true)
+    }
+    /// Pinned keeps the notch open; unpinned folds it once the pointer leaves.
+    private var pinButton: some View {
+        let pinned = store.preferences.alwaysVisible
+        return Button(action: store.togglePin) {
+            Image(systemName: pinned ? "pin.fill" : "pin").font(.system(size: 10, weight: .semibold)).rotationEffect(.degrees(45))
+                .frame(width: 28, height: 16).contentShape(Rectangle())
+        }.buttonStyle(.plain).foregroundStyle(pinned ? DesignTokens.notchInk : DesignTokens.muted)
+            .help(m.text(pinned ? "unpin_notch" : "pin_notch")).accessibilityLabel(m.text(pinned ? "unpin_notch" : "pin_notch"))
+            .accessibilityAddTraits(pinned ? .isSelected : [])
+    }
+    /// Points where the titles go: inward to open them, back to the edge to close them.
+    private var titlesTab: some View {
+        Button(action: store.toggleTitles) {
+            Image(systemName: right == !store.titlesOpen ? "chevron.left" : "chevron.right").font(.system(size: 11, weight: .bold))
+                .frame(width: NotchMetrics.tabDepth + 10, height: NotchMetrics.tabHeight).contentShape(Rectangle())
+        }.buttonStyle(.plain).foregroundStyle(DesignTokens.notchInk)
+            .help(m.text(store.titlesOpen ? "hide_titles" : "show_titles")).accessibilityLabel(m.text(store.titlesOpen ? "hide_titles" : "show_titles"))
     }
     private var needsScrolling: Bool {
         let counts = store.railCounts
@@ -75,9 +126,17 @@ struct RailView: View {
     }
     @ViewBuilder private func railRow(_ row: RailRow) -> some View {
         switch row {
-        case .session(let session): sessionRow(session)
-        case .entry(let item, let session): entryRow(item, session: session)
-        case .divider: Rectangle().fill(DesignTokens.ringTrack).frame(width: DesignTokens.iconSize, height: 1).accessibilityHidden(true)
+        case .session(let session):
+            titled { sessionRow(session) } title: {
+                titleLabel(id: session.id, primary: session.title, secondary: session.projectName, dimmed: session.state == .unknown) { store.choose(session.id) }
+            }
+        case .entry(let item, let session):
+            titled { entryRow(item, session: session) } title: {
+                titleLabel(id: item.id, primary: item.entry.title, secondary: item.others.isEmpty ? nil : m.sharedSession(item.others.count),
+                           dimmed: session == nil) { store.choose(item) }
+            }
+        case .divider:
+            titled { Rectangle().fill(DesignTokens.ringTrack).frame(width: DesignTokens.iconSize, height: 1).accessibilityHidden(true) } title: { Color.clear.frame(height: 1) }
         }
     }
     /// Entries follow the work file order, so they offer details but no rename or move.
@@ -135,13 +194,27 @@ struct RailView: View {
 
 }
 
+/// Clicking the pill unfolds the bubbles; the tab of the unfolded notch then opens the titles.
+/// The arrow carries the most urgent state: red for a decision, green for work or an unseen result.
 struct FoldedRailView: View {
     @ObservedObject var store: AppStore
+    private var cue: Color {
+        switch store.registry.attention {
+        case .waiting: DesignTokens.danger
+        case .working: DesignTokens.activity
+        default: DesignTokens.notchInk
+        }
+    }
     var body: some View {
         SideNotchShape(edge: store.preferences.edge, folded: true).fill(DesignTokens.notch)
             .overlay {
+                Image(systemName: store.preferences.edge == .right ? "chevron.left" : "chevron.right")
+                    .font(.system(size: 8, weight: .heavy)).foregroundStyle(cue)
+                    .allowsHitTesting(false).accessibilityHidden(true)
+            }
+            .overlay {
                 RailDragHandle(label: store.messages.text("open_notch"), onBegin: store.beginRailDrag,
-                    onMove: store.dragRail, onEnd: store.endRailDrag, onClick: { store.choose("report") },
+                    onMove: store.dragRail, onEnd: store.endRailDrag, onClick: { store.setHover(true) },
                     contextTitle: store.messages.text("settings"), onContext: { store.onSettings?() },
                     hint: store.messages.text("drag_notch"))
                     .focusEffectDisabled()

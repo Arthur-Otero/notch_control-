@@ -6,13 +6,15 @@ Clicar na bolinha traz a aba dessa sessão para a frente. O painel não copia o 
 
 ## O que aparece
 
-| O que você vê | Significado | O notch |
+| O que você vê | Significado | Na pílula |
 |---|---|---|
-| Anel verde girando | O agente está executando. | Fica aberto. |
-| Anel verde parado | O turno terminou e essa aba ainda não foi vista. | Fica aberto. |
-| `!` vermelho | O compositor pede uma decisão. | Fica aberto. |
-| Nada | Parado no prompt, e você já clicou na bolinha ou o iTerm2 está na frente nessa aba. | Pode recolher. |
-| Logo apagado | A tela não foi reconhecida. O app não inventa um estado. | Pode recolher. |
+| Anel verde girando | O agente está executando. | Seta verde. |
+| Anel verde parado | O turno terminou e essa aba ainda não foi vista. | Seta verde. |
+| `!` vermelho | O compositor pede uma decisão. | Seta vermelha. |
+| Nada | Parado no prompt, e você já clicou na bolinha ou o iTerm2 está na frente nessa aba. | Seta branca. |
+| Logo apagado | A tela não foi reconhecida. O app não inventa um estado. | Seta branca. |
+
+O pin no topo do notch decide se ele fica aberto. Fixado, o notch não recolhe sozinho. Solto, ele vira a pílula assim que o mouse sai, mesmo com sessões trabalhando ou pedindo decisão; passar o mouse ou clicar na pílula mostra as bolinhas, e a seta dela assume a cor da sessão mais urgente (vermelho vence verde). Por padrão, um `!` novo ou um turno concluído não abre o notch, só tocam o som e a notificação; em Preferências, cada um desses alertas pode, com o notch solto, abri-lo até o mouse sair ou fixá-lo aberto.
 
 Abaixo da bolinha, uma barra fina mostra quanto do contexto a sessão ocupa: verde abaixo de 30%, amarela abaixo de 70% e vermelha a partir de 70%. Ela só aparece quando o rodapé do CLI informa o contexto, e o balão repete o percentual.
 
@@ -67,7 +69,7 @@ O anel verde parado permanece até uma destas coisas:
 - você clica na bolinha;
 - o iTerm2 é o aplicativo na frente e essa sessão é a aba ativa.
 
-Uma aba só selecionada dentro do iTerm2, com outro aplicativo na frente, não conta. O notch continua aberto.
+Uma aba só selecionada dentro do iTerm2, com outro aplicativo na frente, não conta. A bolinha continua verde.
 
 Depois disso a bolinha fica parada, sem anel. Trocar para outra aba não reacende o verde do turno que você já viu.
 

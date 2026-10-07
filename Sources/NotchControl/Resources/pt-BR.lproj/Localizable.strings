@@ -27,7 +27,7 @@
 "edge" = "Borda";
 "display" = "Monitor";
 "width" = "Largura do painel";
-"always_visible" = "Manter ícones visíveis";
+"always_visible" = "Manter o notch aberto (fixado)";
 "language" = "Idioma";
 "start_login" = "Iniciar com o Mac";
 "login_unavailable" = "Início com o Mac exige abrir o aplicativo .app compilado.";
@@ -45,7 +45,7 @@
 "empty_report" = "Este arquivo ainda não tem conteúdo.";
 "reading_report" = "Lendo arquivo…";
 "drag_notch" = "Arraste a área preta para mover o notch. Clique secundário abre as preferências.";
-"open_notch" = "Abrir relatório; arraste para mover o notch. Clique secundário abre as preferências.";
+"open_notch" = "Mostrar as sessões; arraste para mover o notch. Clique secundário abre as preferências.";
 "missing_report" = "Abra um arquivo Markdown para ler com a formatação preservada.";
 "read_failed" = "Não foi possível ler o arquivo. A última versão continua disponível.";
 "file_unavailable" = "Arquivo indisponível. Escolha outro caminho.";
@@ -147,3 +147,11 @@
 "no_session" = "Sem sessão";
 "note_hint" = "Clique para abrir o arquivo de trabalho.";
 "context" = "Contexto";
+"show_titles" = "Mostrar títulos";
+"hide_titles" = "Ocultar títulos";
+"pin_notch" = "Fixar o notch aberto";
+"unpin_notch" = "Soltar: recolher ao tirar o mouse";
+"notch_on_event" = "Notch recolhido";
+"notch_nothing" = "Não mexer";
+"notch_open" = "Abrir até o mouse sair";
+"notch_pin" = "Fixar aberto";

@@ -85,6 +85,11 @@ struct SettingsView: View {
                 Picker(m.text("sound"), selection: setting.soundName) { ForEach(["Glass", "Ping", "Pop", "Basso", "Submarine"], id: \.self) { Text($0).tag($0) } }
                 Button(m.text("preview")) { NSSound(named: NSSound.Name(setting.wrappedValue.soundName))?.play() }
             }
+            Picker(m.text("notch_on_event"), selection: setting.notchAction) {
+                Text(m.text("notch_nothing")).tag(AlertNotchAction.nothing)
+                Text(m.text("notch_open")).tag(AlertNotchAction.open)
+                Text(m.text("notch_pin")).tag(AlertNotchAction.pin)
+            }
         }
     }
     private func prepareHooks() {

@@ -14,6 +14,8 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
     @Published private(set) var lastPanelContent: String?
     @Published private(set) var closingSnapshot: TerminalSnapshot?
     @Published var expandedRail = false
+    /// Task titles beside the bubbles, opened from the tab on the notch's inner side.
+    @Published var titlesOpen = false
     @Published var historyTab = false
     @Published var olderHistory = false
     @Published var noticeKey: String?
@@ -83,15 +85,19 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
     func contextPercent(_ session: AgentSession) -> Double? {
         gateway.contextUsage[session.terminal.id].flatMap { $0.terminal == session.terminal ? $0.usedPercent : nil }
     }
+    /// Expanded rail window: the inner tab, the titles when open, and the bubble column.
+    var railWindowWidth: CGFloat { NotchMetrics.tabDepth + DesignTokens.railWidth + (titlesOpen ? NotchMetrics.titlesWidth : 0) }
+    func railFrameWidth(expanded: Bool) -> CGFloat { expanded ? railWindowWidth : DesignTokens.pillWidth }
+    func toggleTitles() { titlesOpen.toggle(); onTooltip?(nil); onLayout?() }
+    /// Pinned, the notch stays open; unpinned, it folds into the pill once the pointer leaves, even with active sessions.
+    func togglePin() { preferences.alwaysVisible.toggle(); persistPreferences() }
     func railHeight(available: CGFloat) -> CGFloat {
         let counts = railCounts
         return NotchMetrics.height(sessions: counts.cells, dividers: counts.dividers, available: available)
     }
     var panelOpen: Bool { content != nil }
-    /// Working or waiting sessions keep the notch open. Idle and unknown may fold.
-    var railExpanded: Bool {
-        panelOpen || preferences.alwaysVisible || expandedRail || registry.sessions.contains { $0.state == .working || $0.state == .waiting || $0.unseenResult }
-    }
+    /// Open while pinned, hovered or showing the panel; otherwise the pill, whose arrow carries the sessions' state.
+    var railExpanded: Bool { panelOpen || expandedRail || preferences.alwaysVisible }
     var screen: NSScreen {
         NSScreen.screens.first { ($0.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value == preferences.screenID }
         ?? NSScreen.main ?? NSScreen.screens[0]
@@ -257,15 +263,16 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
         guard destination >= 0, destination <= registry.sessions.count else { return }
         move(id, before: destination < registry.sessions.count ? registry.sessions[destination].id : nil)
     }
+    /// Leaving always clears the hover; a pinned notch stays open through `railExpanded` anyway.
     func setHover(_ inside: Bool) {
         hoverSerial += 1
         guard !draggingRail else { return }
         let serial = hoverSerial
         if inside { expandedRail = true; onLayout?() }
-        else if !panelOpen, !preferences.alwaysVisible {
+        else if !panelOpen {
             Task { @MainActor [weak self] in
                 try? await Task.sleep(for: .milliseconds(500))
-                guard let self, self.hoverSerial == serial, !self.draggingRail, !self.panelOpen, !self.preferences.alwaysVisible else { return }
+                guard let self, self.hoverSerial == serial, !self.draggingRail, !self.panelOpen else { return }
                 self.expandedRail = false; self.onLayout?()
             }
         }
@@ -274,7 +281,7 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
         let area = screen.visibleFrame
         let expanded = railExpanded
         let height = expanded ? railHeight(available: area.height) : DesignTokens.pillHeight
-        let width = expanded ? DesignTokens.railWidth : DesignTokens.pillWidth
+        let width = railFrameWidth(expanded: expanded)
         let frame = RailGeometry.frame(area: .init(x: area.minX, y: area.minY, width: area.width, height: area.height),
             edge: preferences.edge, position: preferences.railPosition, width: width, height: height)
         railDrag = RailDrag(pointer: pointer, centerY: frame.y + frame.height / 2)
@@ -293,7 +300,7 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
             area: .init(x: area.minX, y: area.minY, width: area.width, height: area.height), height: height)
         preferences.screenID = placement.screenID; preferences.edge = placement.edge; preferences.railPosition = placement.position
         if !panelOpen, let start = railDragStart {
-            let width = expanded ? DesignTokens.railWidth : DesignTokens.pillWidth
+            let width = railFrameWidth(expanded: expanded)
             railDragOrigin = RailPoint(x: min(area.maxX - width, max(area.minX, railDragStartX + pointer.x - start.x)),
                                       y: area.minY + area.height * placement.position - height / 2)
         }
@@ -307,7 +314,7 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
         let area = screen.visibleFrame
         let expanded = railExpanded
         let height = expanded ? railHeight(available: area.height) : DesignTokens.pillHeight
-        let width = expanded ? DesignTokens.railWidth : DesignTokens.pillWidth
+        let width = railFrameWidth(expanded: expanded)
         let frame = RailGeometry.frame(area: .init(x: area.minX, y: area.minY, width: area.width, height: area.height),
             edge: preferences.edge, position: preferences.railPosition, width: width, height: height)
         setHover(pointer.x >= frame.x && pointer.x <= frame.x + frame.width && pointer.y >= frame.y && pointer.y <= frame.y + frame.height)
@@ -386,7 +393,7 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
     /// Rectangle where the real iTerm2 window sits: the panel minus the header and the resize strip.
     func terminalCard() -> NSRect {
         let area = screen.visibleFrame
-        let layout = PanelLayout(screen: .init(x: area.minX, y: area.minY, width: area.width, height: area.height), edge: preferences.edge, preferredWidth: dragWidth ?? preferences.panelWidth, railWidth: DesignTokens.railWidth)
+        let layout = PanelLayout(screen: .init(x: area.minX, y: area.minY, width: area.width, height: area.height), edge: preferences.edge, preferredWidth: dragWidth ?? preferences.panelWidth, railWidth: railWindowWidth)
         let width = dragWidth.map { min(layout.maximumWidth, max(1, $0)) } ?? layout.content.width
         let full = NSRect(x: preferences.edge == .left ? area.minX : area.maxX - max(1, width), y: area.minY, width: max(1, width), height: area.height)
         let handle: CGFloat = 5
@@ -400,7 +407,7 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
         guard !gateway.embedOnSelect, panelOpen, selected != nil, !draggingRail, dragWidth == nil, gateway.canSend,
               let original = gateway.selected, original.singlePane, !original.fullscreen else { return }
         let area = screen.visibleFrame
-        let layout = PanelLayout(screen: .init(x: area.minX, y: area.minY, width: area.width, height: area.height), edge: preferences.edge, preferredWidth: preferences.panelWidth, railWidth: DesignTokens.railWidth)
+        let layout = PanelLayout(screen: .init(x: area.minX, y: area.minY, width: area.width, height: area.height), edge: preferences.edge, preferredWidth: preferences.panelWidth, railWidth: railWindowWidth)
         let columns = min(1000, max(2, Int((layout.content.width - PanelMetrics.terminalChromeWidth) / TerminalCanvas.cellWidth)))
         let rows = min(500, max(1, Int((area.height - PanelMetrics.terminalChromeHeight) / TerminalCanvas.cellHeight)))
         guard original.columns != columns || original.rows != rows else { return }
@@ -417,7 +424,10 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
     }
     private func accept(_ evidence: AgentEvidence, baseline: Bool) {
         guard let session = registry.apply(evidence) else { return }
-        if let kind = alerts.observe(id: session.id, state: session.state, sequence: session.sequence, kind: evidence.kind, baseline: baseline) { notify(session, kind: kind) }
+        if let kind = alerts.observe(id: session.id, state: session.state, sequence: session.sequence, kind: evidence.kind, baseline: baseline) {
+            notify(session, kind: kind)
+            reveal(for: kind)
+        }
         resolvePendingResume()
         save(); onLayout?()
     }
@@ -434,6 +444,14 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
                 try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: path.path)
             }
         } catch { noticeKey = "file_unavailable" }
+    }
+    /// Opens the folded notch until the pointer leaves, or pins it, as the alert's preference asks.
+    private func reveal(for kind: AlertKind) {
+        switch (kind == .waiting ? preferences.waiting : preferences.completed).notchAction {
+        case .nothing: break
+        case .open: if !railExpanded { expandedRail = true; onLayout?() }
+        case .pin: if !preferences.alwaysVisible { togglePin() }
+        }
     }
     private func notify(_ session: AgentSession, kind: AlertKind) {
         let setting = kind == .waiting ? preferences.waiting : preferences.completed

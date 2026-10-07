@@ -124,6 +124,14 @@ public struct AgentRegistry: Codable, Sendable {
         return sessions[i]
     }
 
+    /// The most urgent state among the sessions: `.waiting` for a pending decision, `.working` for work or an unseen
+    /// result, nil when nothing needs the notch open.
+    public var attention: AgentState? {
+        if sessions.contains(where: { $0.state == .waiting }) { return .waiting }
+        if sessions.contains(where: { $0.state == .working || $0.unseenResult }) { return .working }
+        return nil
+    }
+
     public mutating func invalidateEvidence() {
         for i in sessions.indices {
             sessions[i].state = .unknown

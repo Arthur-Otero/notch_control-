@@ -27,7 +27,7 @@
 "edge" = "Edge";
 "display" = "Display";
 "width" = "Panel width";
-"always_visible" = "Keep icons visible";
+"always_visible" = "Keep the notch open (pinned)";
 "language" = "Language";
 "start_login" = "Start at login";
 "login_unavailable" = "Start at login requires the built .app bundle.";
@@ -45,7 +45,7 @@
 "empty_report" = "This file has no content yet.";
 "reading_report" = "Reading file…";
 "drag_notch" = "Drag the black area to move the notch. Right-click opens settings.";
-"open_notch" = "Open report; drag to move the notch. Right-click opens settings.";
+"open_notch" = "Show the sessions; drag to move the notch. Right-click opens settings.";
 "missing_report" = "Open a Markdown file to read it with its formatting preserved.";
 "read_failed" = "Unable to read the file. The last version remains available.";
 "file_unavailable" = "File unavailable. Choose another path.";
@@ -147,3 +147,11 @@
 "no_session" = "No session";
 "note_hint" = "Click to open the work file.";
 "context" = "Context";
+"show_titles" = "Show titles";
+"hide_titles" = "Hide titles";
+"pin_notch" = "Pin the notch open";
+"unpin_notch" = "Unpin: fold when the pointer leaves";
+"notch_on_event" = "Folded notch";
+"notch_nothing" = "Leave it";
+"notch_open" = "Open until the pointer leaves";
+"notch_pin" = "Pin it open";
