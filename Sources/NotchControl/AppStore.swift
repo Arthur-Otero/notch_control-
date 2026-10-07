@@ -18,6 +18,8 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
     @Published var titlesOpen = false
     /// Folded by hand: active sessions no longer hold the notch open; hovering still peeks.
     @Published private(set) var heldFolded = false
+    /// Right after folding, the shrinking window passes under the pointer; that hover would unfold it again.
+    private var hoverBlockedUntil = Date.distantPast
     @Published var historyTab = false
     @Published var olderHistory = false
     @Published var noticeKey: String?
@@ -97,9 +99,10 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
     }
     func fold() {
         heldFolded = true; titlesOpen = false; expandedRail = false; hoverSerial += 1
+        hoverBlockedUntil = Date().addingTimeInterval(0.6)
         onTooltip?(nil); onLayout?()
     }
-    func unfold() { heldFolded = false; setHover(true) }
+    func unfold() { heldFolded = false; hoverBlockedUntil = .distantPast; setHover(true) }
     func railHeight(available: CGFloat) -> CGFloat {
         let counts = railCounts
         return NotchMetrics.height(sessions: counts.cells, dividers: counts.dividers, available: available)
@@ -276,6 +279,7 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
         move(id, before: destination < registry.sessions.count ? registry.sessions[destination].id : nil)
     }
     func setHover(_ inside: Bool) {
+        if inside, Date() < hoverBlockedUntil { return }
         hoverSerial += 1
         guard !draggingRail else { return }
         let serial = hoverSerial

@@ -100,6 +100,8 @@ final class WorkModeTests: XCTestCase {
             store.fold()
             XCTAssertFalse(store.titlesOpen, "Folding closes the titles")
             XCTAssertFalse(store.railExpanded)
+            store.setHover(true)
+            XCTAssertFalse(store.railExpanded, "The window shrinking under the pointer must not unfold it")
             store.unfold()
             XCTAssertFalse(store.heldFolded)
             XCTAssertTrue(store.railExpanded)
