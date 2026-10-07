@@ -16,6 +16,8 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
     @Published var expandedRail = false
     /// Task titles beside the bubbles, opened from the tab on the notch's inner side.
     @Published var titlesOpen = false
+    /// Folded by hand: active sessions no longer hold the notch open; hovering still peeks.
+    @Published private(set) var heldFolded = false
     @Published var historyTab = false
     @Published var olderHistory = false
     @Published var noticeKey: String?
@@ -88,15 +90,25 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
     /// Expanded rail window: the inner tab, the titles when open, and the bubble column.
     var railWindowWidth: CGFloat { NotchMetrics.tabDepth + DesignTokens.railWidth + (titlesOpen ? NotchMetrics.titlesWidth : 0) }
     func railFrameWidth(expanded: Bool) -> CGFloat { expanded ? railWindowWidth : DesignTokens.pillWidth }
-    func toggleTitles() { titlesOpen.toggle(); onTooltip?(nil); onLayout?() }
+    func toggleTitles() {
+        titlesOpen.toggle()
+        if titlesOpen { heldFolded = false }
+        onTooltip?(nil); onLayout?()
+    }
+    func fold() {
+        heldFolded = true; titlesOpen = false; expandedRail = false; hoverSerial += 1
+        onTooltip?(nil); onLayout?()
+    }
+    func unfold() { heldFolded = false; setHover(true) }
     func railHeight(available: CGFloat) -> CGFloat {
         let counts = railCounts
         return NotchMetrics.height(sessions: counts.cells, dividers: counts.dividers, available: available)
     }
     var panelOpen: Bool { content != nil }
-    /// Working or waiting sessions keep the notch open. Idle and unknown may fold.
+    /// Working or waiting sessions keep the notch open, unless it was folded by hand. Idle and unknown may fold.
     var railExpanded: Bool {
-        panelOpen || titlesOpen || preferences.alwaysVisible || expandedRail || registry.sessions.contains { $0.state == .working || $0.state == .waiting || $0.unseenResult }
+        if panelOpen || expandedRail { return true }
+        return !heldFolded && (titlesOpen || preferences.alwaysVisible || registry.attention != nil)
     }
     var screen: NSScreen {
         NSScreen.screens.first { ($0.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value == preferences.screenID }
@@ -268,10 +280,11 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
         guard !draggingRail else { return }
         let serial = hoverSerial
         if inside { expandedRail = true; onLayout?() }
-        else if !panelOpen, !preferences.alwaysVisible {
+        else if !panelOpen, !preferences.alwaysVisible || heldFolded {
             Task { @MainActor [weak self] in
                 try? await Task.sleep(for: .milliseconds(500))
-                guard let self, self.hoverSerial == serial, !self.draggingRail, !self.panelOpen, !self.preferences.alwaysVisible else { return }
+                guard let self, self.hoverSerial == serial, !self.draggingRail, !self.panelOpen,
+                      !self.preferences.alwaysVisible || self.heldFolded else { return }
                 self.expandedRail = false; self.onLayout?()
             }
         }

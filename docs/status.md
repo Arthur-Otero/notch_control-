@@ -14,6 +14,8 @@ Clicar na bolinha traz a aba dessa sessão para a frente. O painel não copia o 
 | Nada | Parado no prompt, e você já clicou na bolinha ou o iTerm2 está na frente nessa aba. | Pode recolher. |
 | Logo apagado | A tela não foi reconhecida. O app não inventa um estado. | Pode recolher. |
 
+A seta no topo do notch o recolhe para a pílula mesmo com sessões ativas. Recolhido assim, ele só volta com um clique na pílula (o hover mostra as bolinhas enquanto o mouse está em cima), e a seta da pílula fica vermelha se alguma sessão pede decisão e verde se alguma trabalha ou tem resultado não visto. Um `!` novo não reabre o notch; o som e a notificação continuam.
+
 Abaixo da bolinha, uma barra fina mostra quanto do contexto a sessão ocupa: verde abaixo de 30%, amarela abaixo de 70% e vermelha a partir de 70%. Ela só aparece quando o rodapé do CLI informa o contexto, e o balão repete o percentual.
 
 Com **Mostrar entradas do arquivo de trabalho no notch** ligado, cada bolinha é uma sessão do `work.md`. Cada entrada é representada pela sua sessão aberta ou, sem nenhuma aberta, pela mais recente. Entradas representadas pela mesma sessão dividem uma bolinha, porque uma sessão pode cobrir vários repositórios: a sessão aparece uma vez, aberta ou fechada. O título e o `Status` são os da primeira dessas entradas, e o balão acrescenta `+N na mesma sessão` com os títulos das demais.

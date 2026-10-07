@@ -52,6 +52,9 @@ struct RailView: View {
          .overlay(alignment: .topLeading) { if !preview { bodyDrag().frame(width: bodyDragGutter, height: bodyDragMiddle(geometry.size.height)).padding(.top, bodyDragTop).padding(.leading, right ? innerInset : 0) } }
          .overlay(alignment: .topTrailing) { if !preview && !needsScrolling { bodyDrag().frame(width: bodyDragGutter, height: bodyDragMiddle(geometry.size.height)).padding(.top, bodyDragTop).padding(.trailing, right ? 0 : innerInset) } }
          .overlay(alignment: right ? .leading : .trailing) { titlesTab }
+         .overlay(alignment: right ? .topTrailing : .topLeading) {
+            if !store.panelOpen { foldButton.frame(width: DesignTokens.railWidth).padding(.top, DesignTokens.flare + 4) }
+         }
         }
             .onHover(perform: store.setHover)
             .onChange(of: store.content) { _, _ in hoverTask?.cancel(); store.onTooltip?(nil) }
@@ -88,6 +91,14 @@ struct RailView: View {
              .padding(right ? .leading : .trailing, 16).padding(right ? .trailing : .leading, 6)
              .contentShape(Rectangle())
         }.buttonStyle(.plain).onHover { inside in tooltip(inside ? id : nil) }.accessibilityHidden(true)
+    }
+    /// Folds the notch into the pill even while sessions are active.
+    private var foldButton: some View {
+        Button(action: store.fold) {
+            Image(systemName: right ? "chevron.right" : "chevron.left").font(.system(size: 10, weight: .bold))
+                .frame(width: 28, height: 18).contentShape(Rectangle())
+        }.buttonStyle(.plain).foregroundStyle(DesignTokens.muted)
+            .help(m.text("fold_notch")).accessibilityLabel(m.text("fold_notch"))
     }
     /// Points where the titles go: inward to open them, back to the edge to close them.
     private var titlesTab: some View {
@@ -182,18 +193,26 @@ struct RailView: View {
 }
 
 /// Clicking the pill unfolds the bubbles; the tab of the unfolded notch then opens the titles.
+/// Folded by hand, the arrow carries the most urgent state: red for a decision, green for work or an unseen result.
 struct FoldedRailView: View {
     @ObservedObject var store: AppStore
+    private var cue: Color {
+        switch store.registry.attention {
+        case .waiting: DesignTokens.danger
+        case .working: DesignTokens.activity
+        default: DesignTokens.notchInk
+        }
+    }
     var body: some View {
         SideNotchShape(edge: store.preferences.edge, folded: true).fill(DesignTokens.notch)
             .overlay {
                 Image(systemName: store.preferences.edge == .right ? "chevron.left" : "chevron.right")
-                    .font(.system(size: 8, weight: .heavy)).foregroundStyle(DesignTokens.notchInk)
+                    .font(.system(size: 8, weight: .heavy)).foregroundStyle(cue)
                     .allowsHitTesting(false).accessibilityHidden(true)
             }
             .overlay {
                 RailDragHandle(label: store.messages.text("open_notch"), onBegin: store.beginRailDrag,
-                    onMove: store.dragRail, onEnd: store.endRailDrag, onClick: { store.setHover(true) },
+                    onMove: store.dragRail, onEnd: store.endRailDrag, onClick: store.unfold,
                     contextTitle: store.messages.text("settings"), onContext: { store.onSettings?() },
                     hint: store.messages.text("drag_notch"))
                     .focusEffectDisabled()

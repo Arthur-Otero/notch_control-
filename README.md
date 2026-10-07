@@ -77,7 +77,7 @@ Passe o mouse sobre o notch para expandir. Clique na bolinha de uma sessão para
 
 O resultado é considerado visto quando você clica na bolinha ou quando o iTerm2 está em primeiro plano com essa aba ativa. Abrir a aba não apaga uma aprovação que continua pendente. O comportamento detalhado está em [docs/status.md](docs/status.md).
 
-A seta na lateral interna do notch abre uma coluna com o título de cada bolinha (o título da entrada do arquivo de trabalho ou o da aba, com o projeto); clicar no título faz o mesmo que clicar na bolinha. Arraste a área preta para mover o notch pela lateral, trocar de borda ou de monitor. O clique secundário abre Preferências. O menu de contexto de cada bolinha permite renomear e mudar a ordem da sessão. Preferências também oferece posição e monitor como alternativas ao arraste.
+A seta no topo recolhe o notch para a pílula mesmo com sessões ativas; a seta da pílula fica vermelha ou verde enquanto houver sessão pedindo decisão ou trabalhando, e um clique nela reabre o notch. A seta na lateral interna do notch abre uma coluna com o título de cada bolinha (o título da entrada do arquivo de trabalho ou o da aba, com o projeto); clicar no título faz o mesmo que clicar na bolinha. Arraste a área preta para mover o notch pela lateral, trocar de borda ou de monitor. O clique secundário abre Preferências. O menu de contexto de cada bolinha permite renomear e mudar a ordem da sessão. Preferências também oferece posição e monitor como alternativas ao arraste.
 
 ### Ler arquivos Markdown
 

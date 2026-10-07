@@ -146,6 +146,17 @@ final class WorkBoardTests: XCTestCase {
         XCTAssertEqual(registry.sessions.first?.conversation, newest)
     }
 
+    func testAttentionIsTheMostUrgentSessionState() {
+        var registry = AgentRegistry()
+        XCTAssertNil(registry.attention)
+        registry.reconcile([session("a", .claude, nil), session("b", .codex, nil)])
+        XCTAssertNil(registry.attention)
+        registry.apply(.init(terminal: .init(id: "a", generation: "1"), provider: .claude, conversation: nil, sequence: 1, kind: .working, associationProven: true))
+        XCTAssertEqual(registry.attention, .working)
+        registry.apply(.init(terminal: .init(id: "b", generation: "1"), provider: .codex, conversation: nil, sequence: 1, kind: .waiting, associationProven: true))
+        XCTAssertEqual(registry.attention, .waiting)
+    }
+
     func testPreferencesSavedBeforeTheWorkModeStillLoad() throws {
         var saved = try JSONSerialization.jsonObject(with: JSONEncoder().encode(AppPreferences())) as? [String: Any] ?? [:]
         saved["workMode"] = nil

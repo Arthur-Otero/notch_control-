@@ -96,6 +96,13 @@ final class WorkModeTests: XCTestCase {
             XCTAssertEqual(store.railWindowWidth, NotchMetrics.tabDepth + DesignTokens.railWidth + NotchMetrics.titlesWidth)
             store.toggleTitles()
             XCTAssertFalse(store.titlesOpen)
+            store.toggleTitles()
+            store.fold()
+            XCTAssertFalse(store.titlesOpen, "Folding closes the titles")
+            XCTAssertFalse(store.railExpanded)
+            store.unfold()
+            XCTAssertFalse(store.heldFolded)
+            XCTAssertTrue(store.railExpanded)
         }
 
         store.choose(closedItem)
