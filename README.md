@@ -163,14 +163,16 @@ Também é possível executar:
 
 - **Nenhuma sessão aparece:** confirme que o CLI está em uma aba local do iTerm2, que a API está habilitada e que o helper foi autorizado.
 - **Uso indisponível no balão:** o formato do rodapé pode não fornecer limites reconhecíveis. O app não estima uma porcentagem. No Claude Code, a statusline precisa escrever `5h 42%` e `7d 13%` ou, para incluir a renovação, `18:00 42%` e `13/10 13%` no começo da linha ou logo depois de `·` ou `|`.
-- **Sem barra de contexto na bolinha:** o app lê o contexto do rodapé do CLI e não estima. Quando o rodapé não o informa, o balão da sessão avisa. O Codex já escreve `Context 14% used` ou `86% context left` e funciona sem ajuste. O Claude Code só mostra o contexto se a sua statusline o escrever, citando a palavra `context` ou `ctx`:
+- **Sem barra de contexto na bolinha:** o app lê o contexto do rodapé do CLI e não estima. Quando o rodapé não o informa, o balão da sessão avisa. O Codex já escreve `Context 14% used` ou `86% context left` e funciona sem ajuste. O Claude Code mostra o que a sua statusline escrever, em qualquer destes formatos:
 
   | Formato na statusline | Lido como |
   |---|---|
-  | `ctx:37%`, `ctx 37%`, `context: 37%`, `context window 37%`, `37% context used`, `context used: 37%` | 37% usado |
+  | `ctx:37%`, `context 37%`, `context window: 37%`, `ctx ████░░ 37%`, `37% context used` | 37% usado |
   | `63% context left`, `63% of context remaining`, `context left: 63%`, `ctx 63% left` | 37% usado |
+  | `63% left`, `63% remaining`, `63% free` ou `37% used`, sozinhos num trecho da statusline (só no Claude Code) | 37% usado |
+  | `120k/200k`, `379k/1M` (janelas de 100k, 128k, 200k, 258k, 272k, 400k, 500k, 1M e 2M) | a fração |
 
-  Um `63% left` solto não vale, porque sem a palavra `context` poderia ser qualquer limite. Se a sua statusline já escreve isso, basta trocar por `63% context left`. Para quem ainda não tem statusline, este exemplo escreve o contexto ocupado (precisa do `jq`):
+  O trecho sozinho é um pedaço da statusline, entre `·`, `|`, `│`, `•` ou espaços duplos, que contém apenas o número e `left`, `remaining`, `free` ou `used`. Ele só vale quando é o único assim: se houver dois, o app não escolhe. Número com rótulo (`5h 42% left`, `weekly 30% left`, `battery 63% left`) nunca é lido como contexto, nem uma data (`13/10`) ou um par de entrada e saída de tokens (`20k/50k`). Para quem ainda não tem statusline, este exemplo escreve o contexto ocupado (precisa do `jq`):
 
   ```bash
   #!/usr/bin/env bash
