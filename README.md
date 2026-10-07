@@ -163,7 +163,7 @@ Também é possível executar:
 
 - **Nenhuma sessão aparece:** confirme que o CLI está em uma aba local do iTerm2, que a API está habilitada e que o helper foi autorizado.
 - **Uso indisponível no balão:** o formato do rodapé pode não fornecer limites reconhecíveis. O app não estima uma porcentagem. No Claude Code, a statusline precisa escrever `5h 42%` e `7d 13%` ou, para incluir a renovação, `18:00 42%` e `13/10 13%` no começo da linha ou logo depois de `·` ou `|`.
-- **Sem barra de contexto na bolinha:** o app lê o contexto do rodapé do CLI e não estima. Quando o rodapé não o informa, o balão da sessão avisa. O Codex já escreve `Context 14% used` ou `86% context left` e funciona sem ajuste. O Claude Code mostra o que a sua statusline escrever, em qualquer destes formatos:
+- **Sem barra de contexto na bolinha:** o app lê o contexto do rodapé do CLI e não estima: se o rodapé não o informa, não há barra. O Codex já escreve `Context 14% used` ou `86% context left` e funciona sem ajuste. O Claude Code mostra o que a sua statusline escrever, em qualquer destes formatos:
 
   | Formato na statusline | Lido como |
   |---|---|
