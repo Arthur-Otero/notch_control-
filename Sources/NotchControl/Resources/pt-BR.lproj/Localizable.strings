@@ -147,6 +147,7 @@
 "no_session" = "Sem sessão";
 "note_hint" = "Clique para abrir o arquivo de trabalho.";
 "context" = "Contexto";
+"context_missing" = "O rodapé do %@ não informa o contexto. Veja como no README, em Diagnóstico.";
 "show_titles" = "Mostrar títulos";
 "hide_titles" = "Ocultar títulos";
 "pin_notch" = "Fixar o notch aberto";

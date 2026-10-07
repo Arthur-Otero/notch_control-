@@ -10,6 +10,8 @@ public enum AgentProvider: String, Codable, Sendable, CaseIterable {
         case .cursor: "Cursor"
         }
     }
+    /// The helper can read the context share from this provider's status bar.
+    public var reportsContext: Bool { self == .claude || self == .codex }
 }
 public enum AgentState: String, Codable, Sendable { case working, idle, waiting, unknown }
 public enum AgentEventKind: String, Codable, Sendable { case working, waiting, completed, interrupted, unavailable }
@@ -74,6 +76,9 @@ public struct AgentSession: Codable, Equatable, Identifiable, Sendable {
     }
     /// Nome da pasta do projeto, usado como contexto secundário.
     public var projectName: String { URL(fileURLWithPath: project).lastPathComponent }
+    /// A recognized screen of a provider whose status bar can carry the context, yet no share was read:
+    /// the user's status bar does not report it, which is worth saying instead of leaving the bar out silently.
+    public func contextIsMissing(_ reading: Double?) -> Bool { reading == nil && state != .unknown && provider.reportsContext }
 }
 
 public struct AgentRegistry: Codable, Sendable {

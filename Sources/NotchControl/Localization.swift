@@ -11,6 +11,8 @@ struct Messages {
         let value = bundle.localizedString(forKey: key, value: nil, table: "Localizable")
         return value == key ? bundle.localizedString(forKey: "api_operation_failed", value: nil, table: "Localizable") : value
     }
+    /// Tells why the balloon has no context bar: the provider's status bar does not report it.
+    func contextMissing(_ provider: AgentProvider) -> String { String(format: text("context_missing"), provider.displayName) }
     /// How many more work entries share the bubble's session, as in "+3 in the same session".
     func sharedSession(_ count: Int) -> String { "+\(count) " + text("work_also") }
     /// Accessible name of a work bubble: its title, plus how many more entries share the session.

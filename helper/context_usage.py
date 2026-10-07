@@ -4,11 +4,19 @@ import re
 from account_usage import footer
 
 _PERCENT = r"(?P<percent>\d+(?:\.\d+)?)%"
-# (pattern, the number is what is left)
-_PATTERNS = {
-    "claude": [(r"\bctx:?\s*" + _PERCENT, False)],
-    "codex": [(r"\bcontext\s+" + _PERCENT + r"\s+used\b", False), (_PERCENT + r"\s+context\s+left\b", True)],
-}
+_CONTEXT = r"(?:context(?:\s+window)?|ctx)"
+_LEFT = r"(?:left|remaining|free)"
+# A bare "63% left" is not here on purpose: without the word context it could be any limit.
+# (pattern, the number is what is left); the first match wins, so the explicit forms come before the bare one.
+_FORMATS = [
+    (_PERCENT + r"\s+(?:of\s+)?" + _CONTEXT + r"\s+" + _LEFT + r"\b", True),
+    (r"\b" + _CONTEXT + r"\s+" + _LEFT + r":?\s*" + _PERCENT, True),
+    (r"\b" + _CONTEXT + r":?\s*" + _PERCENT + r"\s+" + _LEFT + r"\b", True),
+    (_PERCENT + r"\s+(?:of\s+)?" + _CONTEXT + r"\s+used\b", False),
+    (r"\b" + _CONTEXT + r"\s+used:?\s*" + _PERCENT, False),
+    (r"\b" + _CONTEXT + r":?\s*" + _PERCENT, False),
+]
+_PATTERNS = {"claude": _FORMATS, "codex": _FORMATS}
 
 
 def read_context(text, provider):

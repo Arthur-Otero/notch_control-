@@ -147,6 +147,7 @@
 "no_session" = "No session";
 "note_hint" = "Click to open the work file.";
 "context" = "Context";
+"context_missing" = "The %@ status bar does not report the context. See the README, under Diagnóstico.";
 "show_titles" = "Show titles";
 "hide_titles" = "Hide titles";
 "pin_notch" = "Pin the notch open";

@@ -60,6 +60,9 @@ struct SessionDetails: View {
                     }.font(.system(size: 11))
                     LevelBar(usedPercent: context, level: .context(context)).frame(height: 5)
                 }.accessibilityElement(children: .combine)
+            } else if let session, session.contextIsMissing(context) {
+                Text(messages.contextMissing(session.provider)).font(.system(size: 10)).foregroundStyle(DesignTokens.muted)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             usage
             VStack(alignment: .leading, spacing: 3) {
