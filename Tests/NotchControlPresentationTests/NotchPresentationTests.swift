@@ -113,8 +113,8 @@ final class NotchPresentationTests: XCTestCase {
     }
 
     @MainActor
-    func testAFinishedTurnLeavesOpensOrPinsTheUnpinnedNotchAsConfigured() throws {
-        for action in AlertNotchAction.allCases {
+    func testAFinishedTurnLeavesOpensOrKeepsOpenTheFoldedNotchAsConfigured() throws {
+        for (action, showsPin) in AlertNotchAction.allCases.flatMap({ action in [true, false].map { (action, $0) } }) {
             let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
             let state = folder.appendingPathComponent(".notchcontrol")
             try FileManager.default.createDirectory(at: state, withIntermediateDirectories: true)
@@ -125,6 +125,8 @@ final class NotchPresentationTests: XCTestCase {
             try JSONEncoder().encode(registry).write(to: state.appendingPathComponent("sessions.json"))
             var preferences = AppPreferences()
             preferences.alwaysVisible = false
+            preferences.showsPin = showsPin
+            preferences.notchVisibility = .alwaysFolded
             preferences.completed.notchAction = action
             preferences.completed.sound = false
             preferences.completed.notification = false
@@ -133,12 +135,140 @@ final class NotchPresentationTests: XCTestCase {
             defer { store.work.stop(); store.history.stop() }
             store.gateway.onEvidence?(AgentEvidence(terminal: candidate.terminal, provider: .claude, conversation: nil,
                 sequence: 1, kind: .working, associationProven: true), true)
-            XCTAssertFalse(store.railExpanded, "\(action): unpinned and not hovered")
+            XCTAssertFalse(store.railExpanded, "\(action), pin shown \(showsPin): unpinned, always folded and not hovered")
             store.gateway.onEvidence?(AgentEvidence(terminal: candidate.terminal, provider: .claude, conversation: nil,
                 sequence: 2, kind: .completed, reason: "result", associationProven: true), false)
-            XCTAssertEqual(store.railExpanded, action != .nothing, "\(action)")
-            XCTAssertEqual(store.preferences.alwaysVisible, action == .pin, "\(action)")
+            XCTAssertEqual(store.railExpanded, action != .nothing, "\(action), pin shown \(showsPin)")
+            XCTAssertEqual(store.preferences.alwaysVisible, action == .pin && showsPin, "\(action), pin shown \(showsPin): without the pin it only opens")
+            XCTAssertEqual(store.preferences.notchVisibility, .alwaysFolded, "\(action): the visibility itself is left alone")
         }
+    }
+
+    @MainActor
+    func testTheFoldedArrowSitsAtTheCenterOfThePillOnBothEdges() throws {
+        let scale: CGFloat = 8
+        let width = DesignTokens.pillWidth, height = DesignTokens.pillHeight
+        for edge in [PanelEdge.right, .left] {
+            let renderer = ImageRenderer(content: FoldedPill(edge: edge, cue: DesignTokens.notchInk)
+                .frame(width: width, height: height).background(Color(red: 1, green: 0, blue: 1)))
+            renderer.scale = scale
+            let bitmap = NSBitmapImageRep(cgImage: try XCTUnwrap(renderer.cgImage))
+            var minX = Int.max, maxX = -1, minY = Int.max, maxY = -1
+            for y in 0..<bitmap.pixelsHigh {
+                for x in 0..<bitmap.pixelsWide where (bitmap.colorAt(x: x, y: y)?.greenComponent ?? 0) > 0.5 {
+                    minX = min(minX, x); maxX = max(maxX, x); minY = min(minY, y); maxY = max(maxY, y)
+                }
+            }
+            XCTAssertGreaterThan(maxX, minX, "\(edge): the arrow is drawn")
+            let drawn = CGSize(width: CGFloat(maxX - minX + 1) / scale, height: CGFloat(maxY - minY + 1) / scale)
+            XCTAssertEqual(drawn.width, PillArrow.width, accuracy: 0.5, "\(edge)")
+            XCTAssertEqual(drawn.height, PillArrow.height, accuracy: 0.5, "\(edge)")
+            XCTAssertEqual(CGFloat(minX + maxX + 1) / 2 / scale, width / 2, accuracy: 0.25, "\(edge): horizontally centered")
+            XCTAssertEqual(CGFloat(minY + maxY + 1) / 2 / scale, height / 2, accuracy: 0.25, "\(edge): vertically centered")
+        }
+    }
+
+    @MainActor
+    func testTheNotchOnlyKeepsTheSpaceOfThePinWhileThePinIsShown() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let store = AppStore(project: folder)
+        defer { store.work.stop(); store.history.stop() }
+        XCTAssertTrue(store.preferences.showsPin)
+        XCTAssertEqual(NotchMetrics.topPadding(pin: true), DesignTokens.topPadding)
+        XCTAssertEqual(NotchMetrics.topPadding(pin: false), DesignTokens.regular)
+        for sessions in [0, 1, 4] {
+            let shown = NotchMetrics.contentHeight(sessions: sessions)
+            let hidden = NotchMetrics.contentHeight(sessions: sessions, pin: false)
+            XCTAssertEqual(shown - hidden, DesignTokens.topPadding - DesignTokens.regular, "\(sessions) sessions")
+            XCTAssertEqual(NotchMetrics.height(sessions: sessions, available: 2000, pin: false), hidden)
+        }
+        XCTAssertFalse(NotchMetrics.needsScrolling(sessions: 10, available: NotchMetrics.contentHeight(sessions: 10, pin: false), pin: false))
+        XCTAssertTrue(NotchMetrics.needsScrolling(sessions: 10, available: NotchMetrics.contentHeight(sessions: 10, pin: false), pin: true),
+                      "The pin's space no longer fits where the hidden pin's notch did")
+
+        let withPin = store.railHeight(available: 2000)
+        store.preferences.showsPin = false
+        XCTAssertEqual(withPin - store.railHeight(available: 2000), DesignTokens.topPadding - DesignTokens.regular)
+        store.preferences.showsPin = true
+        XCTAssertEqual(store.railHeight(available: 2000), withPin, "Showing the pin again gives its space back")
+    }
+
+    @MainActor
+    func testThePinOverridesTheVisibilityWhichFollowsTheSessionsWhenUnpinned() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let state = folder.appendingPathComponent(".notchcontrol")
+        try FileManager.default.createDirectory(at: state, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let first = AgentCandidate(terminal: .init(id: "one", generation: "test"), provider: .claude, project: "/project", name: "Claude")
+        let second = AgentCandidate(terminal: .init(id: "two", generation: "test"), provider: .codex, project: "/project", name: "Codex")
+        var registry = AgentRegistry()
+        registry.reconcile([first, second])
+        try JSONEncoder().encode(registry).write(to: state.appendingPathComponent("sessions.json"))
+        let store = AppStore(project: folder)
+        defer { store.work.stop(); store.history.stop() }
+        var sequence: UInt64 = 0
+        func report(_ candidate: AgentCandidate, _ kind: AgentEventKind, reason: String? = nil) {
+            sequence += 1
+            store.gateway.onEvidence?(AgentEvidence(terminal: candidate.terminal, provider: candidate.provider, conversation: nil,
+                sequence: sequence, kind: kind, reason: reason, associationProven: true), true)
+        }
+
+        XCTAssertTrue(store.preferences.alwaysVisible, "New installs start pinned")
+        XCTAssertEqual(store.preferences.notchVisibility, .automatic)
+        XCTAssertTrue(store.railExpanded, "Pinned, with nothing to show")
+        store.togglePin()
+        XCTAssertFalse(store.railExpanded, "Unpinned and automatic: nothing recognized yet, so nothing needs the notch")
+        report(first, .working)
+        XCTAssertTrue(store.railExpanded, "Working")
+        report(second, .waiting)
+        report(first, .completed)
+        XCTAssertTrue(store.railExpanded, "A decision is still pending")
+        report(second, .completed, reason: "result")
+        XCTAssertTrue(store.railExpanded, "Finished, but the result was not seen yet")
+        store.markSeen(second.key)
+        XCTAssertFalse(store.railExpanded, "Every session idle")
+        report(first, .working)
+        XCTAssertTrue(store.railExpanded)
+        report(first, .interrupted)
+        XCTAssertFalse(store.railExpanded)
+
+        report(first, .working)
+        store.setHover(true)
+        report(first, .interrupted)
+        XCTAssertTrue(store.railExpanded, "The pointer holds it open until it leaves")
+        store.expandedRail = false
+
+        store.setNotchVisibility(.alwaysFolded)
+        report(first, .working)
+        report(second, .waiting)
+        XCTAssertFalse(store.railExpanded, "Always folded, even with work and a pending decision")
+        store.setNotchVisibility(.alwaysOpen)
+        report(first, .interrupted)
+        report(second, .interrupted)
+        XCTAssertTrue(store.railExpanded, "Always open, even with every session idle")
+
+        store.setNotchVisibility(.alwaysFolded)
+        XCTAssertFalse(store.railExpanded)
+        store.togglePin()
+        XCTAssertTrue(store.railExpanded, "The pin wins over always folded")
+        store.setNotchVisibility(.automatic)
+        XCTAssertTrue(store.railExpanded, "The pin wins over automatic with every session idle")
+        let saved = AppPreferences.load(try Data(contentsOf: state.appendingPathComponent("preferences.json")))
+        XCTAssertTrue(saved.alwaysVisible)
+        XCTAssertEqual(saved.notchVisibility, .automatic)
+
+        store.preferences.showsPin = false
+        store.persistPreferences()
+        XCTAssertTrue(store.preferences.alwaysVisible, "Hiding the pin keeps its state")
+        XCTAssertFalse(store.railExpanded, "Without the pin on the notch only the visibility applies: automatic with every session idle")
+        report(first, .working)
+        XCTAssertTrue(store.railExpanded)
+        store.preferences.showsPin = true
+        store.persistPreferences()
+        report(first, .interrupted)
+        XCTAssertTrue(store.railExpanded, "Showing the pin again brings back its hold")
     }
 
     @MainActor
@@ -167,7 +297,10 @@ final class NotchPresentationTests: XCTestCase {
         XCTAssertTrue(store.railExpanded, "New installs start pinned")
         XCTAssertEqual(store.registry.attention, .waiting, "The pill arrow shows the pending decision")
         store.togglePin()
-        XCTAssertFalse(store.railExpanded, "Unpinned, work or a pending decision no longer holds the notch open")
+        XCTAssertTrue(store.railExpanded, "Unpinned and automatic, the pending decision keeps the notch open")
+        store.setNotchVisibility(.alwaysFolded)
+        XCTAssertFalse(store.railExpanded, "Always folded, work or a pending decision no longer holds the notch open")
+        store.setNotchVisibility(.automatic)
         store.togglePin()
         let height = NotchMetrics.height(sessions: candidates.count, available: 900)
         let renderer = ImageRenderer(content: RailView(store: store).frame(width: DesignTokens.railWidth, height: height)

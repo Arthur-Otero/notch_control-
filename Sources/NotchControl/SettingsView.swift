@@ -19,7 +19,12 @@ struct SettingsView: View {
                 }
                 Slider(value: $store.preferences.railPosition, in: 0...1) { Text(m.text("position")) }
                 Slider(value: $store.preferences.panelWidth, in: 360...max(360, store.screen.visibleFrame.width * 0.8)) { Text(m.text("width")) }
-                Toggle(m.text("always_visible"), isOn: $store.preferences.alwaysVisible)
+                Toggle(m.text("show_pin"), isOn: $store.preferences.showsPin)
+                Text(m.text("pin_hint")).font(.caption).foregroundStyle(DesignTokens.muted)
+                Picker(m.text("notch_visibility"), selection: $store.preferences.notchVisibility) {
+                    ForEach(NotchVisibility.allCases, id: \.self) { Text(m.text($0.titleKey)).tag($0) }
+                }
+                Text(m.text(store.preferences.notchVisibility.hintKey)).font(.caption).foregroundStyle(DesignTokens.muted)
             }
             Section(m.text("report")) {
                 fileRow(store.preferences.workPath, key: "choose_work", history: false)
@@ -60,7 +65,8 @@ struct SettingsView: View {
             .onChange(of: store.preferences.screenID) { _, _ in store.persistPreferences() }
             .onChange(of: store.preferences.railPosition) { _, _ in store.persistPreferences() }
             .onChange(of: store.preferences.panelWidth) { _, _ in store.persistPreferences() }
-            .onChange(of: store.preferences.alwaysVisible) { _, _ in store.persistPreferences() }
+            .onChange(of: store.preferences.showsPin) { _, _ in store.persistPreferences() }
+            .onChange(of: store.preferences.notchVisibility) { _, _ in store.persistPreferences() }
             .onChange(of: store.preferences.showsWorkEntries) { _, _ in store.persistPreferences() }
             .onChange(of: store.preferences.language) { _, _ in store.persistPreferences() }
             .onChange(of: store.preferences.waiting) { _, _ in store.persistPreferences() }

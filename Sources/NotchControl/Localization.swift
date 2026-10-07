@@ -1,6 +1,17 @@
 import Foundation
 import NotchControlCore
 
+extension NotchVisibility {
+    var titleKey: String {
+        switch self {
+        case .alwaysOpen: "visibility_open"
+        case .automatic: "visibility_automatic"
+        case .alwaysFolded: "visibility_folded"
+        }
+    }
+    var hintKey: String { titleKey + "_hint" }
+}
+
 struct Messages {
     let language: InterfaceLanguage
     func text(_ key: String) -> String {
