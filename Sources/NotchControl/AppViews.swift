@@ -53,7 +53,7 @@ struct RailView: View {
          .overlay(alignment: .topTrailing) { if !preview && !needsScrolling { bodyDrag().frame(width: bodyDragGutter, height: bodyDragMiddle(geometry.size.height)).padding(.top, bodyDragTop).padding(.trailing, right ? 0 : innerInset) } }
          .overlay(alignment: right ? .leading : .trailing) { titlesTab }
          .overlay(alignment: right ? .topTrailing : .topLeading) {
-            if !store.panelOpen { foldButton.frame(width: DesignTokens.railWidth).padding(.top, DesignTokens.flare + 4) }
+            if !store.panelOpen { foldButton.frame(width: DesignTokens.railWidth).padding(.top, DesignTokens.flare + 10) }
          }
         }
             .onHover(perform: store.setHover)
@@ -96,7 +96,7 @@ struct RailView: View {
     private var foldButton: some View {
         Button(action: store.fold) {
             Image(systemName: right ? "chevron.right" : "chevron.left").font(.system(size: 10, weight: .bold))
-                .frame(width: 28, height: 18).contentShape(Rectangle())
+                .frame(width: 28, height: 16).contentShape(Rectangle())
         }.buttonStyle(.plain).foregroundStyle(DesignTokens.muted)
             .help(m.text("fold_notch")).accessibilityLabel(m.text("fold_notch"))
     }
