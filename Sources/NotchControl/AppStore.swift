@@ -424,7 +424,10 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
     }
     private func accept(_ evidence: AgentEvidence, baseline: Bool) {
         guard let session = registry.apply(evidence) else { return }
-        if let kind = alerts.observe(id: session.id, state: session.state, sequence: session.sequence, kind: evidence.kind, baseline: baseline) { notify(session, kind: kind) }
+        if let kind = alerts.observe(id: session.id, state: session.state, sequence: session.sequence, kind: evidence.kind, baseline: baseline) {
+            notify(session, kind: kind)
+            reveal(for: kind)
+        }
         resolvePendingResume()
         save(); onLayout?()
     }
@@ -441,6 +444,14 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
                 try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: path.path)
             }
         } catch { noticeKey = "file_unavailable" }
+    }
+    /// Opens the folded notch until the pointer leaves, or pins it, as the alert's preference asks.
+    private func reveal(for kind: AlertKind) {
+        switch (kind == .waiting ? preferences.waiting : preferences.completed).notchAction {
+        case .nothing: break
+        case .open: if !railExpanded { expandedRail = true; onLayout?() }
+        case .pin: if !preferences.alwaysVisible { togglePin() }
+        }
     }
     private func notify(_ session: AgentSession, kind: AlertKind) {
         let setting = kind == .waiting ? preferences.waiting : preferences.completed

@@ -1,10 +1,18 @@
 import Foundation
 
 public enum InterfaceLanguage: String, Codable, Sendable { case portuguese, english }
+/// What an alert does to the notch when it is folded.
+public enum AlertNotchAction: String, Codable, Sendable, CaseIterable { case nothing, open, pin }
 public struct AlertPreference: Codable, Equatable, Sendable {
     public var notification = true
     public var sound = true
     public var soundName = "Glass"
+    /// Optional so preferences saved before the option existed still decode.
+    private var notch: AlertNotchAction?
+    public var notchAction: AlertNotchAction {
+        get { notch ?? .nothing }
+        set { notch = newValue }
+    }
     public init() {}
 }
 public struct AppPreferences: Codable, Sendable {

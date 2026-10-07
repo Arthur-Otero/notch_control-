@@ -162,13 +162,20 @@ final class WorkBoardTests: XCTestCase {
         saved["workMode"] = nil
         saved["edge"] = "left"
         saved["panelWidth"] = 777
+        saved["waiting"] = ["notification": false, "sound": true, "soundName": "Ping"]
         let loaded = AppPreferences.load(try JSONSerialization.data(withJSONObject: saved))
         XCTAssertEqual(loaded.edge, .left)
         XCTAssertEqual(loaded.panelWidth, 777)
         XCTAssertFalse(loaded.showsWorkEntries)
+        XCTAssertFalse(loaded.waiting.notification)
+        XCTAssertEqual(loaded.waiting.soundName, "Ping")
+        XCTAssertEqual(loaded.waiting.notchAction, .nothing)
         var enabled = loaded
         enabled.showsWorkEntries = true
-        XCTAssertTrue(AppPreferences.load(try JSONEncoder().encode(enabled)).showsWorkEntries)
+        enabled.completed.notchAction = .pin
+        let reloaded = AppPreferences.load(try JSONEncoder().encode(enabled))
+        XCTAssertTrue(reloaded.showsWorkEntries)
+        XCTAssertEqual(reloaded.completed.notchAction, .pin)
     }
 
     private func entries(_ spec: [(title: String, conversations: [String])]) -> [WorkEntry] {

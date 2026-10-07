@@ -113,6 +113,35 @@ final class NotchPresentationTests: XCTestCase {
     }
 
     @MainActor
+    func testAFinishedTurnLeavesOpensOrPinsTheUnpinnedNotchAsConfigured() throws {
+        for action in AlertNotchAction.allCases {
+            let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+            let state = folder.appendingPathComponent(".notchcontrol")
+            try FileManager.default.createDirectory(at: state, withIntermediateDirectories: true)
+            defer { try? FileManager.default.removeItem(at: folder) }
+            let candidate = AgentCandidate(terminal: .init(id: "one", generation: "test"), provider: .claude, project: "/project", name: "Claude")
+            var registry = AgentRegistry()
+            registry.reconcile([candidate])
+            try JSONEncoder().encode(registry).write(to: state.appendingPathComponent("sessions.json"))
+            var preferences = AppPreferences()
+            preferences.alwaysVisible = false
+            preferences.completed.notchAction = action
+            preferences.completed.sound = false
+            preferences.completed.notification = false
+            try JSONEncoder().encode(preferences).write(to: state.appendingPathComponent("preferences.json"))
+            let store = AppStore(project: folder)
+            defer { store.work.stop(); store.history.stop() }
+            store.gateway.onEvidence?(AgentEvidence(terminal: candidate.terminal, provider: .claude, conversation: nil,
+                sequence: 1, kind: .working, associationProven: true), true)
+            XCTAssertFalse(store.railExpanded, "\(action): unpinned and not hovered")
+            store.gateway.onEvidence?(AgentEvidence(terminal: candidate.terminal, provider: .claude, conversation: nil,
+                sequence: 2, kind: .completed, reason: "result", associationProven: true), false)
+            XCTAssertEqual(store.railExpanded, action != .nothing, "\(action)")
+            XCTAssertEqual(store.preferences.alwaysVisible, action == .pin, "\(action)")
+        }
+    }
+
+    @MainActor
     func testNotchCanRenderProviderStatesOffscreen() throws {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)

@@ -151,3 +151,7 @@
 "hide_titles" = "Hide titles";
 "pin_notch" = "Pin the notch open";
 "unpin_notch" = "Unpin: fold when the pointer leaves";
+"notch_on_event" = "Folded notch";
+"notch_nothing" = "Leave it";
+"notch_open" = "Open until the pointer leaves";
+"notch_pin" = "Pin it open";

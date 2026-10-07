@@ -151,3 +151,7 @@
 "hide_titles" = "Ocultar títulos";
 "pin_notch" = "Fixar o notch aberto";
 "unpin_notch" = "Soltar: recolher ao tirar o mouse";
+"notch_on_event" = "Notch recolhido";
+"notch_nothing" = "Não mexer";
+"notch_open" = "Abrir até o mouse sair";
+"notch_pin" = "Fixar aberto";
