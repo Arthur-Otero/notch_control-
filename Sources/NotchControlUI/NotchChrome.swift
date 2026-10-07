@@ -10,18 +10,22 @@ public enum NotchMetrics {
     /// Tab on the inner side of the notch: how far it sticks out and how tall it is.
     public static let tabDepth: CGFloat = 14
     public static let tabHeight: CGFloat = 60
+    /// Space between the top flare and the document icon. It holds the pin; without the pin the glyph sits as far from the top
+    /// as the last bubble does from the bottom, which takes the icon's own margin into account.
+    public static func topPadding(pin: Bool) -> CGFloat { pin ? DesignTokens.topPadding : DesignTokens.regular }
     /// A divider is a 1 pt line that takes one more cell spacing between the rows around it.
-    public static func contentHeight(sessions: Int, dividers: Int = 0) -> CGFloat {
+    public static func contentHeight(sessions: Int, dividers: Int = 0, pin: Bool = true) -> CGFloat {
         let rows = CGFloat(max(0, sessions)) * cellHeight + CGFloat(max(0, sessions - 1)) * DesignTokens.cellSpacing
             + CGFloat(max(0, dividers)) * (1 + DesignTokens.cellSpacing)
-        let fixed = 2 * DesignTokens.flare + DesignTokens.topPadding + DesignTokens.iconSize + 33 + DesignTokens.bottomPadding + (sessions > 0 ? 8 : 0)
+        let fixed = 2 * DesignTokens.flare + topPadding(pin: pin) + DesignTokens.iconSize + 33 + DesignTokens.bottomPadding + (sessions > 0 ? 8 : 0)
         return fixed + rows
     }
-    public static func height(sessions: Int, dividers: Int = 0, available: CGFloat) -> CGFloat {
-        min(max(0, available), min(maximumHeight, contentHeight(sessions: sessions, dividers: dividers)))
+    public static func height(sessions: Int, dividers: Int = 0, available: CGFloat, pin: Bool = true) -> CGFloat {
+        min(max(0, available), min(maximumHeight, contentHeight(sessions: sessions, dividers: dividers, pin: pin)))
     }
-    public static func needsScrolling(sessions: Int, dividers: Int = 0, available: CGFloat) -> Bool {
-        sessions > 0 && contentHeight(sessions: sessions, dividers: dividers) > height(sessions: sessions, dividers: dividers, available: available)
+    public static func needsScrolling(sessions: Int, dividers: Int = 0, available: CGFloat, pin: Bool = true) -> Bool {
+        sessions > 0 && contentHeight(sessions: sessions, dividers: dividers, pin: pin)
+            > height(sessions: sessions, dividers: dividers, available: available, pin: pin)
     }
 }
 

@@ -54,6 +54,8 @@ Também é possível abrir **Iniciar NotchControl.command** pelo Finder.
 
 O script prepara `.venv`, instala o SDK, compila o app para a arquitetura do Mac, cria o bundle e aplica uma assinatura local. O app usa o helper e o Python dessa pasta: mantenha o projeto disponível e execute o launcher novamente se mudar sua localização. Copiar apenas o `.app` para outro Mac ainda não é suficiente.
 
+O ícone do app vem de `assets/AppIcon.png` (1024 × 1024, com transparência e o corpo em 824 px, como no grid do macOS). O build gera o `.icns` do bundle a partir dele com `sips` e `iconutil`; para trocar o ícone, substitua o PNG e rode o build de novo.
+
 Os bundles ficam em:
 
 ```text
@@ -77,7 +79,15 @@ Passe o mouse sobre o notch para expandir. Clique na bolinha de uma sessão para
 
 O resultado é considerado visto quando você clica na bolinha ou quando o iTerm2 está em primeiro plano com essa aba ativa. Abrir a aba não apaga uma aprovação que continua pendente. O comportamento detalhado está em [docs/status.md](docs/status.md).
 
-O pin no topo fixa o notch aberto (o mesmo que **Preferências → Manter o notch aberto**, ligado por padrão). Solto, o notch vira a pílula quando o mouse sai, mesmo com sessões ativas, e a seta da pílula fica vermelha ou verde enquanto houver sessão pedindo decisão ou trabalhando; passar o mouse ou clicar nela mostra as bolinhas. Em Preferências, os alertas de decisão pendente e de trabalho concluído podem abrir o notch solto até o mouse sair ou fixá-lo. A seta na lateral interna do notch abre uma coluna com o título de cada bolinha (o título da entrada do arquivo de trabalho ou o da aba, com o projeto); clicar no título faz o mesmo que clicar na bolinha. Arraste a área preta para mover o notch pela lateral, trocar de borda ou de monitor. O clique secundário abre Preferências. O menu de contexto de cada bolinha permite renomear e mudar a ordem da sessão. Preferências também oferece posição e monitor como alternativas ao arraste.
+O pin no topo mantém o notch aberto e tem prioridade sobre a visibilidade; vem ligado por padrão, e um clique o solta ou o liga de novo. Com o pin solto, vale a **visibilidade do notch**, escolhida em **Preferências → Posição → Visibilidade do notch**. Para tirar o pin do notch, desligue **Preferências → Posição → Mostrar o pin no notch**: sem ele, só a visibilidade vale, e o estado do pin é guardado para quando voltar.
+
+| Visibilidade | Comportamento |
+|---|---|
+| Sempre aberto | O notch não recolhe sozinho. |
+| Automático (padrão) | Abre enquanto alguma sessão estiver trabalhando, pedindo decisão ou com um resultado ainda não visto, e recolhe quando todas estiverem paradas. |
+| Sempre recolhido | Vira a pílula assim que o mouse sai, mesmo com sessões trabalhando ou pedindo decisão. |
+
+Recolhido, o notch é a pílula, e a seta dela fica vermelha ou verde enquanto houver sessão pedindo decisão ou trabalhando; passar o mouse ou clicar nela mostra as bolinhas. Em Preferências, os alertas de decisão pendente e de trabalho concluído podem abrir o notch recolhido até o mouse sair ou ligar o pin (sem o pin no notch, só abrem). A seta na lateral interna do notch abre uma coluna com o título de cada bolinha (o título da entrada do arquivo de trabalho ou o da aba, com o projeto); clicar no título faz o mesmo que clicar na bolinha. Arraste a área preta para mover o notch pela lateral, trocar de borda ou de monitor. O clique secundário abre Preferências. O menu de contexto de cada bolinha permite renomear e mudar a ordem da sessão. Preferências também oferece posição e monitor como alternativas ao arraste.
 
 ### Ler arquivos Markdown
 

@@ -40,7 +40,7 @@ struct RailView: View {
                     .scrollDisabled(!needsScrolling)
                     .scrollBounceBehavior(.basedOnSize)
             }
-            }.padding(.top, DesignTokens.flare + DesignTokens.topPadding)
+            }.padding(.top, topInset)
              .padding(.bottom, DesignTokens.flare + DesignTokens.bottomPadding)
              .padding(right ? .leading : .trailing, NotchMetrics.tabDepth)
         }.foregroundStyle(DesignTokens.notchInk)
@@ -53,7 +53,7 @@ struct RailView: View {
          .overlay(alignment: .topTrailing) { if !preview && !needsScrolling { bodyDrag().frame(width: bodyDragGutter, height: bodyDragMiddle(geometry.size.height)).padding(.top, bodyDragTop).padding(.trailing, right ? 0 : innerInset) } }
          .overlay(alignment: right ? .leading : .trailing) { titlesTab }
          .overlay(alignment: right ? .topTrailing : .topLeading) {
-            if !store.panelOpen { pinButton.frame(width: DesignTokens.railWidth).padding(.top, DesignTokens.flare + 10) }
+            if !store.panelOpen && store.preferences.showsPin { pinButton.frame(width: DesignTokens.railWidth).padding(.top, DesignTokens.flare + 10) }
          }
         }
             .onHover(perform: store.setHover)
@@ -92,7 +92,7 @@ struct RailView: View {
              .contentShape(Rectangle())
         }.buttonStyle(.plain).onHover { inside in tooltip(inside ? id : nil) }.accessibilityHidden(true)
     }
-    /// Pinned keeps the notch open; unpinned folds it once the pointer leaves.
+    /// Pinned keeps the notch open over the visibility in Preferences; unpinned leaves it to that visibility.
     private var pinButton: some View {
         let pinned = store.preferences.alwaysVisible
         return Button(action: store.togglePin) {
@@ -112,7 +112,8 @@ struct RailView: View {
     }
     private var needsScrolling: Bool {
         let counts = store.railCounts
-        return NotchMetrics.needsScrolling(sessions: counts.cells, dividers: counts.dividers, available: store.screen.visibleFrame.height)
+        return NotchMetrics.needsScrolling(sessions: counts.cells, dividers: counts.dividers, available: store.screen.visibleFrame.height,
+                                           pin: store.preferences.showsPin)
     }
     private var sessionRows: some View {
         let rows = store.railRows
@@ -172,7 +173,9 @@ struct RailView: View {
                 }
         }
     }
-    private var bodyDragTop: CGFloat { DesignTokens.flare + DesignTokens.topPadding }
+    /// From the notch's top edge to the document icon; the pin's space is only kept while the pin is shown.
+    private var topInset: CGFloat { DesignTokens.flare + NotchMetrics.topPadding(pin: store.preferences.showsPin) }
+    private var bodyDragTop: CGFloat { topInset }
     private var bodyDragBottom: CGFloat { DesignTokens.flare + DesignTokens.bottomPadding }
     private var bodyDragGutter: CGFloat { (DesignTokens.railWidth - DesignTokens.iconSize) / 2 }
     private func bodyDragMiddle(_ height: CGFloat) -> CGFloat { max(0, height - bodyDragTop - bodyDragBottom) }
@@ -194,6 +197,36 @@ struct RailView: View {
 
 }
 
+/// The pill's arrow, a chevron stroked from its own bounds: a symbol's font metrics left it off the pill's center.
+struct PillArrow: Shape {
+    /// Visible size of the arrow, round caps included.
+    static let width: CGFloat = 4.5, height: CGFloat = 7.5, stroke: CGFloat = 1.75
+    var pointsLeft: Bool
+    func path(in rect: CGRect) -> Path {
+        let tip = pointsLeft ? rect.minX : rect.maxX, back = pointsLeft ? rect.maxX : rect.minX
+        var path = Path()
+        path.move(to: CGPoint(x: back, y: rect.minY))
+        path.addLine(to: CGPoint(x: tip, y: rect.midY))
+        path.addLine(to: CGPoint(x: back, y: rect.maxY))
+        return path
+    }
+}
+
+/// The folded notch without its drag handle: the pill and its arrow, which points toward the inside of the screen.
+struct FoldedPill: View {
+    let edge: PanelEdge
+    let cue: Color
+    var body: some View {
+        SideNotchShape(edge: edge, folded: true).fill(DesignTokens.notch)
+            .overlay {
+                PillArrow(pointsLeft: edge == .right)
+                    .stroke(cue, style: StrokeStyle(lineWidth: PillArrow.stroke, lineCap: .round, lineJoin: .round))
+                    .frame(width: PillArrow.width - PillArrow.stroke, height: PillArrow.height - PillArrow.stroke)
+                    .allowsHitTesting(false).accessibilityHidden(true)
+            }
+    }
+}
+
 /// Clicking the pill unfolds the bubbles; the tab of the unfolded notch then opens the titles.
 /// The arrow carries the most urgent state: red for a decision, green for work or an unseen result.
 struct FoldedRailView: View {
@@ -206,12 +239,7 @@ struct FoldedRailView: View {
         }
     }
     var body: some View {
-        SideNotchShape(edge: store.preferences.edge, folded: true).fill(DesignTokens.notch)
-            .overlay {
-                Image(systemName: store.preferences.edge == .right ? "chevron.left" : "chevron.right")
-                    .font(.system(size: 8, weight: .heavy)).foregroundStyle(cue)
-                    .allowsHitTesting(false).accessibilityHidden(true)
-            }
+        FoldedPill(edge: store.preferences.edge, cue: cue)
             .overlay {
                 RailDragHandle(label: store.messages.text("open_notch"), onBegin: store.beginRailDrag,
                     onMove: store.dragRail, onEnd: store.endRailDrag, onClick: { store.setHover(true) },

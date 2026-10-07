@@ -60,7 +60,7 @@ Retomada mantém parser e coordenação no núcleo e é acionada pela bolinha de
 
 `ReportFileReader` lê UTF-8, estabiliza atualizações e observa substituição atômica. O leitor conserva o último conteúdo válido durante atualização ou erro; uma troca de arquivo reinicia a posição de leitura. `MarkdownRenderer` usa Foundation e AppKit, sem WebView.
 
-- `.notchcontrol/preferences.json`: posição, idioma, arquivos, alertas e modo do arquivo de trabalho.
+- `.notchcontrol/preferences.json`: posição, pin (`alwaysVisible`) e se ele aparece no notch, visibilidade do notch, idioma, arquivos, alertas e modo do arquivo de trabalho. O pin tem prioridade sobre a visibilidade. Arquivos salvos antes da visibilidade continuam válidos: com o pin solto viram Sempre recolhido, como o notch se comportava, e os demais, Automático.
 - `.notchcontrol/sessions.json`: identidade, ordem e aliases; sem títulos, estados transitórios ou números de sessão.
 - `.notchcontrol/events/`: metadata sanitizada de hooks.
 - `.notchcontrol/hook-plan-*.json`: plano privado de configuração, incluindo o conteúdo anterior necessário para detectar concorrência.

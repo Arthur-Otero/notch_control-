@@ -89,15 +89,18 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
     var railWindowWidth: CGFloat { NotchMetrics.tabDepth + DesignTokens.railWidth + (titlesOpen ? NotchMetrics.titlesWidth : 0) }
     func railFrameWidth(expanded: Bool) -> CGFloat { expanded ? railWindowWidth : DesignTokens.pillWidth }
     func toggleTitles() { titlesOpen.toggle(); onTooltip?(nil); onLayout?() }
-    /// Pinned, the notch stays open; unpinned, it folds into the pill once the pointer leaves, even with active sessions.
+    /// Pinned, the notch stays open whatever the visibility says; unpinned, the visibility decides when it folds.
     func togglePin() { preferences.alwaysVisible.toggle(); persistPreferences() }
+    func setNotchVisibility(_ visibility: NotchVisibility) { preferences.notchVisibility = visibility; persistPreferences() }
     func railHeight(available: CGFloat) -> CGFloat {
         let counts = railCounts
-        return NotchMetrics.height(sessions: counts.cells, dividers: counts.dividers, available: available)
+        return NotchMetrics.height(sessions: counts.cells, dividers: counts.dividers, available: available, pin: preferences.showsPin)
     }
     var panelOpen: Bool { content != nil }
-    /// Open while pinned, hovered or showing the panel; otherwise the pill, whose arrow carries the sessions' state.
-    var railExpanded: Bool { panelOpen || expandedRail || preferences.alwaysVisible }
+    /// Open while pinned, hovered, showing the panel or held by the visibility mode; otherwise the pill, whose arrow carries the sessions' state.
+    var railExpanded: Bool {
+        panelOpen || expandedRail || preferences.pinHoldsOpen || preferences.notchVisibility.holdsOpen(attention: registry.attention)
+    }
     var screen: NSScreen {
         NSScreen.screens.first { ($0.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value == preferences.screenID }
         ?? NSScreen.main ?? NSScreen.screens[0]
@@ -263,7 +266,7 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
         guard destination >= 0, destination <= registry.sessions.count else { return }
         move(id, before: destination < registry.sessions.count ? registry.sessions[destination].id : nil)
     }
-    /// Leaving always clears the hover; a pinned notch stays open through `railExpanded` anyway.
+    /// Leaving always clears the hover; a pinned notch, or one its visibility holds open, stays open through `railExpanded` anyway.
     func setHover(_ inside: Bool) {
         hoverSerial += 1
         guard !draggingRail else { return }
@@ -446,11 +449,12 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
         } catch { noticeKey = "file_unavailable" }
     }
     /// Opens the folded notch until the pointer leaves, or pins it, as the alert's preference asks.
+    /// Without the pin on the notch, pinning is not possible and the alert only opens it.
     private func reveal(for kind: AlertKind) {
         switch (kind == .waiting ? preferences.waiting : preferences.completed).notchAction {
         case .nothing: break
-        case .open: if !railExpanded { expandedRail = true; onLayout?() }
-        case .pin: if !preferences.alwaysVisible { togglePin() }
+        case .pin where preferences.showsPin: if !preferences.alwaysVisible { togglePin() }
+        case .open, .pin: if !railExpanded { expandedRail = true; onLayout?() }
         }
     }
     private func notify(_ session: AgentSession, kind: AlertKind) {

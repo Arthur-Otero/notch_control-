@@ -97,7 +97,7 @@ final class WorkModeTests: XCTestCase {
             XCTAssertFalse(store.titlesOpen)
             XCTAssertTrue(store.railExpanded, "New installs start pinned")
             store.togglePin()
-            XCTAssertFalse(store.railExpanded, "Unpinned, only hovering opens it")
+            XCTAssertFalse(store.railExpanded, "Unpinned with every session unrecognized, only hovering opens it")
             store.setHover(true)
             XCTAssertTrue(store.railExpanded)
             store.togglePin()

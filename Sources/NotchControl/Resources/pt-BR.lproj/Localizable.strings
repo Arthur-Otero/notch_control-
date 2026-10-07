@@ -27,7 +27,15 @@
 "edge" = "Borda";
 "display" = "Monitor";
 "width" = "Largura do painel";
-"always_visible" = "Manter o notch aberto (fixado)";
+"show_pin" = "Mostrar o pin no notch";
+"pin_hint" = "O pin mantém o notch aberto e tem prioridade sobre a visibilidade abaixo. Sem o pin no notch, só a visibilidade vale.";
+"notch_visibility" = "Visibilidade do notch";
+"visibility_open" = "Sempre aberto";
+"visibility_open_hint" = "O notch fica aberto o tempo todo e só recolhe se você mudar esta opção.";
+"visibility_automatic" = "Automático";
+"visibility_automatic_hint" = "Abre quando alguma sessão estiver trabalhando, pedindo decisão ou com um resultado que você ainda não viu, e recolhe quando todas estiverem paradas.";
+"visibility_folded" = "Sempre recolhido";
+"visibility_folded_hint" = "Recolhe assim que o mouse sai, mesmo com sessões trabalhando ou pedindo decisão. Passe o mouse ou clique na pílula para abrir.";
 "language" = "Idioma";
 "start_login" = "Iniciar com o Mac";
 "login_unavailable" = "Início com o Mac exige abrir o aplicativo .app compilado.";
@@ -150,7 +158,7 @@
 "show_titles" = "Mostrar títulos";
 "hide_titles" = "Ocultar títulos";
 "pin_notch" = "Fixar o notch aberto";
-"unpin_notch" = "Soltar: recolher ao tirar o mouse";
+"unpin_notch" = "Soltar o pin: vale a visibilidade das Preferências";
 "notch_on_event" = "Notch recolhido";
 "notch_nothing" = "Não mexer";
 "notch_open" = "Abrir até o mouse sair";
