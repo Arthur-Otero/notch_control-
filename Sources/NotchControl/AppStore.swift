@@ -16,10 +16,6 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
     @Published var expandedRail = false
     /// Task titles beside the bubbles, opened from the tab on the notch's inner side.
     @Published var titlesOpen = false
-    /// Folded by hand: active sessions no longer hold the notch open; hovering still peeks.
-    @Published private(set) var heldFolded = false
-    /// Right after folding, the shrinking window passes under the pointer; that hover would unfold it again.
-    private var hoverBlockedUntil = Date.distantPast
     @Published var historyTab = false
     @Published var olderHistory = false
     @Published var noticeKey: String?
@@ -92,27 +88,16 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
     /// Expanded rail window: the inner tab, the titles when open, and the bubble column.
     var railWindowWidth: CGFloat { NotchMetrics.tabDepth + DesignTokens.railWidth + (titlesOpen ? NotchMetrics.titlesWidth : 0) }
     func railFrameWidth(expanded: Bool) -> CGFloat { expanded ? railWindowWidth : DesignTokens.pillWidth }
-    func toggleTitles() {
-        titlesOpen.toggle()
-        if titlesOpen { heldFolded = false }
-        onTooltip?(nil); onLayout?()
-    }
-    func fold() {
-        heldFolded = true; titlesOpen = false; expandedRail = false; hoverSerial += 1
-        hoverBlockedUntil = Date().addingTimeInterval(0.6)
-        onTooltip?(nil); onLayout?()
-    }
-    func unfold() { heldFolded = false; hoverBlockedUntil = .distantPast; setHover(true) }
+    func toggleTitles() { titlesOpen.toggle(); onTooltip?(nil); onLayout?() }
+    /// Pinned, the notch stays open; unpinned, it folds into the pill once the pointer leaves, even with active sessions.
+    func togglePin() { preferences.alwaysVisible.toggle(); persistPreferences() }
     func railHeight(available: CGFloat) -> CGFloat {
         let counts = railCounts
         return NotchMetrics.height(sessions: counts.cells, dividers: counts.dividers, available: available)
     }
     var panelOpen: Bool { content != nil }
-    /// Working or waiting sessions keep the notch open, unless it was folded by hand. Idle and unknown may fold.
-    var railExpanded: Bool {
-        if panelOpen || expandedRail { return true }
-        return !heldFolded && (titlesOpen || preferences.alwaysVisible || registry.attention != nil)
-    }
+    /// Open while pinned, hovered or showing the panel; otherwise the pill, whose arrow carries the sessions' state.
+    var railExpanded: Bool { panelOpen || expandedRail || preferences.alwaysVisible }
     var screen: NSScreen {
         NSScreen.screens.first { ($0.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value == preferences.screenID }
         ?? NSScreen.main ?? NSScreen.screens[0]
@@ -278,17 +263,16 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
         guard destination >= 0, destination <= registry.sessions.count else { return }
         move(id, before: destination < registry.sessions.count ? registry.sessions[destination].id : nil)
     }
+    /// Leaving always clears the hover; a pinned notch stays open through `railExpanded` anyway.
     func setHover(_ inside: Bool) {
-        if inside, Date() < hoverBlockedUntil { return }
         hoverSerial += 1
         guard !draggingRail else { return }
         let serial = hoverSerial
         if inside { expandedRail = true; onLayout?() }
-        else if !panelOpen, !preferences.alwaysVisible || heldFolded {
+        else if !panelOpen {
             Task { @MainActor [weak self] in
                 try? await Task.sleep(for: .milliseconds(500))
-                guard let self, self.hoverSerial == serial, !self.draggingRail, !self.panelOpen,
-                      !self.preferences.alwaysVisible || self.heldFolded else { return }
+                guard let self, self.hoverSerial == serial, !self.draggingRail, !self.panelOpen else { return }
                 self.expandedRail = false; self.onLayout?()
             }
         }

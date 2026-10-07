@@ -87,7 +87,6 @@ final class WorkModeTests: XCTestCase {
                     .background(Color(red: 0.5, green: 0.5, blue: 0.5)), "work-pill" + (edge == .left ? "-left" : ""))
                 for (open, name) in [(false, "work-rail"), (true, "work-rail-titles")] {
                     store.titlesOpen = open
-                    XCTAssertTrue(store.railExpanded || !open)
                     try render(RailView(store: store).environment(\.notchPreview, true).frame(width: store.railWindowWidth, height: store.railHeight(available: 2000))
                         .background(Color(red: 0.5, green: 0.5, blue: 0.5)), name + (edge == .left ? "-left" : ""))
                 }
@@ -96,15 +95,13 @@ final class WorkModeTests: XCTestCase {
             XCTAssertEqual(store.railWindowWidth, NotchMetrics.tabDepth + DesignTokens.railWidth + NotchMetrics.titlesWidth)
             store.toggleTitles()
             XCTAssertFalse(store.titlesOpen)
-            store.toggleTitles()
-            store.fold()
-            XCTAssertFalse(store.titlesOpen, "Folding closes the titles")
-            XCTAssertFalse(store.railExpanded)
+            XCTAssertTrue(store.railExpanded, "New installs start pinned")
+            store.togglePin()
+            XCTAssertFalse(store.railExpanded, "Unpinned, only hovering opens it")
             store.setHover(true)
-            XCTAssertFalse(store.railExpanded, "The window shrinking under the pointer must not unfold it")
-            store.unfold()
-            XCTAssertFalse(store.heldFolded)
             XCTAssertTrue(store.railExpanded)
+            store.togglePin()
+            XCTAssertTrue(store.preferences.alwaysVisible)
         }
 
         store.choose(closedItem)

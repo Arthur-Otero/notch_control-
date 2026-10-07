@@ -135,7 +135,11 @@ final class NotchPresentationTests: XCTestCase {
         XCTAssertEqual(store.registry.sessions.map(\.state), [.working, .idle, .waiting])
         XCTAssertFalse(store.expandedRail)
         XCTAssertFalse(store.panelOpen)
-        XCTAssertTrue(store.railExpanded, "Working or waiting keeps the notch expanded")
+        XCTAssertTrue(store.railExpanded, "New installs start pinned")
+        XCTAssertEqual(store.registry.attention, .waiting, "The pill arrow shows the pending decision")
+        store.togglePin()
+        XCTAssertFalse(store.railExpanded, "Unpinned, work or a pending decision no longer holds the notch open")
+        store.togglePin()
         let height = NotchMetrics.height(sessions: candidates.count, available: 900)
         let renderer = ImageRenderer(content: RailView(store: store).frame(width: DesignTokens.railWidth, height: height)
             .environment(\.notchPreview, true).preferredColorScheme(.dark).background(Color.gray))
@@ -166,15 +170,15 @@ final class NotchPresentationTests: XCTestCase {
                 sequence: 2, kind: .completed, associationProven: true), false)
         }
         XCTAssertEqual(store.registry.sessions.map(\.state), [.idle, .idle, .idle])
-        XCTAssertFalse(store.railExpanded)
+        XCTAssertNil(store.registry.attention)
         store.gateway.onEvidence?(AgentEvidence(terminal: candidates[0].terminal, provider: .claude, conversation: nil,
             sequence: 3, kind: .completed, reason: "result", associationProven: true), false)
         XCTAssertTrue(store.registry.sessions[0].unseenResult)
         XCTAssertEqual(store.registry.sessions[0].state, .idle)
-        XCTAssertTrue(store.railExpanded)
+        XCTAssertEqual(store.registry.attention, .working, "An unseen result lights the pill arrow green")
         store.markSeen(store.registry.sessions[0].id)
         XCTAssertFalse(store.registry.sessions[0].unseenResult)
-        XCTAssertFalse(store.railExpanded)
+        XCTAssertNil(store.registry.attention)
         store.work.stop(); store.history.stop()
     }
 }

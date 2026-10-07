@@ -27,7 +27,7 @@
 "edge" = "Edge";
 "display" = "Display";
 "width" = "Panel width";
-"always_visible" = "Keep icons visible";
+"always_visible" = "Keep the notch open (pinned)";
 "language" = "Language";
 "start_login" = "Start at login";
 "login_unavailable" = "Start at login requires the built .app bundle.";
@@ -149,4 +149,5 @@
 "context" = "Context";
 "show_titles" = "Show titles";
 "hide_titles" = "Hide titles";
-"fold_notch" = "Fold the notch";
+"pin_notch" = "Pin the notch open";
+"unpin_notch" = "Unpin: fold when the pointer leaves";

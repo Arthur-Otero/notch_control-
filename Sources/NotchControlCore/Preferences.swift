@@ -12,7 +12,8 @@ public struct AppPreferences: Codable, Sendable {
     public var screenID: UInt32?
     public var railPosition: Double = 0.5
     public var panelWidth: Double = 560
-    public var alwaysVisible = false
+    /// Pinned: the notch never folds by itself. New installs start pinned.
+    public var alwaysVisible = true
     public var language: InterfaceLanguage = Locale.preferredLanguages.first?.hasPrefix("pt") == true ? .portuguese : .english
     public var workPath: String?
     public var historyPath: String?

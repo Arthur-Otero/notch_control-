@@ -27,7 +27,7 @@
 "edge" = "Borda";
 "display" = "Monitor";
 "width" = "Largura do painel";
-"always_visible" = "Manter ícones visíveis";
+"always_visible" = "Manter o notch aberto (fixado)";
 "language" = "Idioma";
 "start_login" = "Iniciar com o Mac";
 "login_unavailable" = "Início com o Mac exige abrir o aplicativo .app compilado.";
@@ -149,4 +149,5 @@
 "context" = "Contexto";
 "show_titles" = "Mostrar títulos";
 "hide_titles" = "Ocultar títulos";
-"fold_notch" = "Recolher o notch";
+"pin_notch" = "Fixar o notch aberto";
+"unpin_notch" = "Soltar: recolher ao tirar o mouse";

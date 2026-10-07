@@ -53,7 +53,7 @@ struct RailView: View {
          .overlay(alignment: .topTrailing) { if !preview && !needsScrolling { bodyDrag().frame(width: bodyDragGutter, height: bodyDragMiddle(geometry.size.height)).padding(.top, bodyDragTop).padding(.trailing, right ? 0 : innerInset) } }
          .overlay(alignment: right ? .leading : .trailing) { titlesTab }
          .overlay(alignment: right ? .topTrailing : .topLeading) {
-            if !store.panelOpen { foldButton.frame(width: DesignTokens.railWidth).padding(.top, DesignTokens.flare + 10) }
+            if !store.panelOpen { pinButton.frame(width: DesignTokens.railWidth).padding(.top, DesignTokens.flare + 10) }
          }
         }
             .onHover(perform: store.setHover)
@@ -92,13 +92,15 @@ struct RailView: View {
              .contentShape(Rectangle())
         }.buttonStyle(.plain).onHover { inside in tooltip(inside ? id : nil) }.accessibilityHidden(true)
     }
-    /// Folds the notch into the pill even while sessions are active.
-    private var foldButton: some View {
-        Button(action: store.fold) {
-            Image(systemName: right ? "chevron.right" : "chevron.left").font(.system(size: 10, weight: .bold))
+    /// Pinned keeps the notch open; unpinned folds it once the pointer leaves.
+    private var pinButton: some View {
+        let pinned = store.preferences.alwaysVisible
+        return Button(action: store.togglePin) {
+            Image(systemName: pinned ? "pin.fill" : "pin").font(.system(size: 10, weight: .semibold)).rotationEffect(.degrees(45))
                 .frame(width: 28, height: 16).contentShape(Rectangle())
-        }.buttonStyle(.plain).foregroundStyle(DesignTokens.muted)
-            .help(m.text("fold_notch")).accessibilityLabel(m.text("fold_notch"))
+        }.buttonStyle(.plain).foregroundStyle(pinned ? DesignTokens.notchInk : DesignTokens.muted)
+            .help(m.text(pinned ? "unpin_notch" : "pin_notch")).accessibilityLabel(m.text(pinned ? "unpin_notch" : "pin_notch"))
+            .accessibilityAddTraits(pinned ? .isSelected : [])
     }
     /// Points where the titles go: inward to open them, back to the edge to close them.
     private var titlesTab: some View {
@@ -193,7 +195,7 @@ struct RailView: View {
 }
 
 /// Clicking the pill unfolds the bubbles; the tab of the unfolded notch then opens the titles.
-/// Folded by hand, the arrow carries the most urgent state: red for a decision, green for work or an unseen result.
+/// The arrow carries the most urgent state: red for a decision, green for work or an unseen result.
 struct FoldedRailView: View {
     @ObservedObject var store: AppStore
     private var cue: Color {
@@ -212,7 +214,7 @@ struct FoldedRailView: View {
             }
             .overlay {
                 RailDragHandle(label: store.messages.text("open_notch"), onBegin: store.beginRailDrag,
-                    onMove: store.dragRail, onEnd: store.endRailDrag, onClick: store.unfold,
+                    onMove: store.dragRail, onEnd: store.endRailDrag, onClick: { store.setHover(true) },
                     contextTitle: store.messages.text("settings"), onContext: { store.onSettings?() },
                     hint: store.messages.text("drag_notch"))
                     .focusEffectDisabled()
