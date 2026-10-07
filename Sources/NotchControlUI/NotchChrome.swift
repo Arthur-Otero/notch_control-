@@ -10,6 +10,8 @@ public enum NotchMetrics {
     /// Tab on the inner side of the notch: how far it sticks out and how tall it is.
     public static let tabDepth: CGFloat = 14
     public static let tabHeight: CGFloat = 60
+    /// Shorter tab on the folded pill.
+    public static let foldedTabHeight: CGFloat = 40
     /// A divider is a 1 pt line that takes one more cell spacing between the rows around it.
     public static func contentHeight(sessions: Int, dividers: Int = 0) -> CGFloat {
         let rows = CGFloat(max(0, sessions)) * cellHeight + CGFloat(max(0, sessions - 1)) * DesignTokens.cellSpacing

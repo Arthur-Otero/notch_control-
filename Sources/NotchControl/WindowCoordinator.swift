@@ -72,7 +72,7 @@ final class WindowCoordinator {
         let area = store.screen.visibleFrame
         let open = store.panelOpen
         let expanded = store.railExpanded
-        let width = expanded ? store.railWindowWidth : DesignTokens.pillWidth
+        let width = store.railFrameWidth(expanded: expanded)
         let height = expanded ? store.railHeight(available: area.height) : min(area.height, DesignTokens.pillHeight)
         let screen = ScreenArea(x: area.minX, y: area.minY, width: area.width, height: area.height)
         let layout = PanelLayout(screen: screen, edge: store.preferences.edge, preferredWidth: store.preferences.panelWidth, railWidth: store.railWindowWidth)

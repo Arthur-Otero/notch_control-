@@ -184,14 +184,26 @@ struct RailView: View {
 struct FoldedRailView: View {
     @ObservedObject var store: AppStore
     var body: some View {
-        SideNotchShape(edge: store.preferences.edge, folded: true).fill(DesignTokens.notch)
-            .overlay {
+        let right = store.preferences.edge == .right
+        SideNotchShape(edge: store.preferences.edge, folded: true, tab: NotchMetrics.tabDepth, tabHeight: NotchMetrics.foldedTabHeight)
+            .fill(DesignTokens.notch)
+            .overlay(alignment: right ? .trailing : .leading) {
                 RailDragHandle(label: store.messages.text("open_notch"), onBegin: store.beginRailDrag,
                     onMove: store.dragRail, onEnd: store.endRailDrag, onClick: { store.choose("report") },
                     contextTitle: store.messages.text("settings"), onContext: { store.onSettings?() },
                     hint: store.messages.text("drag_notch"))
                     .focusEffectDisabled()
-            }.onHover(perform: store.setHover)
+                    .frame(width: DesignTokens.pillWidth)
+                    .onHover(perform: store.setHover)
+            }
+            // Outside the hover area: expanding on hover would move the tab before the click lands.
+            .overlay(alignment: right ? .leading : .trailing) {
+                Button(action: store.toggleTitles) {
+                    Image(systemName: right ? "chevron.left" : "chevron.right").font(.system(size: 9, weight: .bold))
+                        .frame(width: NotchMetrics.tabDepth, height: NotchMetrics.foldedTabHeight).contentShape(Rectangle())
+                }.buttonStyle(.plain).foregroundStyle(DesignTokens.notchInk)
+                    .help(store.messages.text("show_titles")).accessibilityLabel(store.messages.text("show_titles"))
+            }
     }
 }
 

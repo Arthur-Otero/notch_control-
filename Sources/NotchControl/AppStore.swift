@@ -87,6 +87,8 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
     }
     /// Expanded rail window: the inner tab, the titles when open, and the bubble column.
     var railWindowWidth: CGFloat { NotchMetrics.tabDepth + DesignTokens.railWidth + (titlesOpen ? NotchMetrics.titlesWidth : 0) }
+    /// Folded, the window holds the pill and its tab.
+    func railFrameWidth(expanded: Bool) -> CGFloat { expanded ? railWindowWidth : DesignTokens.pillWidth + NotchMetrics.tabDepth }
     func toggleTitles() { titlesOpen.toggle(); onTooltip?(nil); onLayout?() }
     func railHeight(available: CGFloat) -> CGFloat {
         let counts = railCounts
@@ -279,7 +281,7 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
         let area = screen.visibleFrame
         let expanded = railExpanded
         let height = expanded ? railHeight(available: area.height) : DesignTokens.pillHeight
-        let width = expanded ? railWindowWidth : DesignTokens.pillWidth
+        let width = railFrameWidth(expanded: expanded)
         let frame = RailGeometry.frame(area: .init(x: area.minX, y: area.minY, width: area.width, height: area.height),
             edge: preferences.edge, position: preferences.railPosition, width: width, height: height)
         railDrag = RailDrag(pointer: pointer, centerY: frame.y + frame.height / 2)
@@ -298,7 +300,7 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
             area: .init(x: area.minX, y: area.minY, width: area.width, height: area.height), height: height)
         preferences.screenID = placement.screenID; preferences.edge = placement.edge; preferences.railPosition = placement.position
         if !panelOpen, let start = railDragStart {
-            let width = expanded ? railWindowWidth : DesignTokens.pillWidth
+            let width = railFrameWidth(expanded: expanded)
             railDragOrigin = RailPoint(x: min(area.maxX - width, max(area.minX, railDragStartX + pointer.x - start.x)),
                                       y: area.minY + area.height * placement.position - height / 2)
         }
@@ -312,7 +314,7 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
         let area = screen.visibleFrame
         let expanded = railExpanded
         let height = expanded ? railHeight(available: area.height) : DesignTokens.pillHeight
-        let width = expanded ? railWindowWidth : DesignTokens.pillWidth
+        let width = railFrameWidth(expanded: expanded)
         let frame = RailGeometry.frame(area: .init(x: area.minX, y: area.minY, width: area.width, height: area.height),
             edge: preferences.edge, position: preferences.railPosition, width: width, height: height)
         setHover(pointer.x >= frame.x && pointer.x <= frame.x + frame.width && pointer.y >= frame.y && pointer.y <= frame.y + frame.height)
