@@ -112,7 +112,7 @@ Com um arquivo de trabalho escolhido, ligue **Preferências → Relatório → M
 | Entrada | Bolinha | Clique |
 |---|---|---|
 | Uma das sessões está aberta no iTerm2 | Igual à da sessão, com estado, `!` e alertas | Traz a aba para a frente |
-| Nenhuma sessão aberta | Logo do agente na cor da trilha | Retoma a sessão mais recente numa aba nova |
+| Nenhuma sessão aberta | Logo do agente na cor da trilha | Retoma a sessão mais recente numa aba nova, ou numa janela nova se o iTerm2 não tiver nenhuma |
 | Sem sessões | Documento na cor da trilha | Abre o painel do arquivo de trabalho |
 
 Uma sessão pode cobrir vários repositórios, e então várias entradas listam a mesma conversa. Cada entrada é representada por uma sessão: a aberta no iTerm2 ou, se nenhuma estiver aberta, a mais recente. Entradas representadas pela mesma sessão dividem uma única bolinha, então cada sessão, aberta ou fechada, aparece uma só vez. A bolinha usa o título e o `Status` da primeira dessas entradas na ordem do arquivo, e o balão acrescenta `+N na mesma sessão` com os títulos das demais. Uma sessão antiga de uma entrada que já tem outra sessão aberta ou mais recente não ganha bolinha própria. Se a mesma conversa estiver aberta em duas abas, a segunda continua visível entre as sessões fora do arquivo.

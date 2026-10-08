@@ -23,7 +23,7 @@ Com **Mostrar entradas do arquivo de trabalho no notch** ligado, cada bolinha é
 | O que você vê | Significado | Clique |
 |---|---|---|
 | Qualquer indicador acima | A sessão mais recente da entrada que está aberta no iTerm2. | Traz a aba para a frente. |
-| Logo na cor da trilha, sem anel | Nenhuma sessão da entrada tem terminal aberto; é a sessão fechada mais recente dela. | Retoma essa sessão numa aba nova. |
+| Logo na cor da trilha, sem anel | Nenhuma sessão da entrada tem terminal aberto; é a sessão fechada mais recente dela. | Retoma essa sessão numa aba nova, ou numa janela nova se o iTerm2 não tiver nenhuma. |
 | Documento na cor da trilha | A entrada não lista sessões. | Abre o arquivo de trabalho. |
 | Linha entre grupos | Separa, nesta ordem: entradas com terminal aberto, sessões abertas fora do arquivo e entradas sem terminal aberto. | — |
 

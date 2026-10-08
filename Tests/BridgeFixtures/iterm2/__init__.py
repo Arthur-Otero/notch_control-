@@ -41,6 +41,8 @@ class Stream:
         return self
 
     async def __aexit__(self, *args):
+        if os.environ.get("NOTCH_CONTROL_FIXTURE_CLEANUP_HANG") == "1":
+            await asyncio.Event().wait()  # unsubscribe sent to an iTerm2 that never answers
         return False
 
     async def async_get(self, style=False):
@@ -180,6 +182,17 @@ class Window:
             return None
         return tab
 
+    @staticmethod
+    async def async_create(connection, profile_customizations=None):
+        effect('create_window', profile={key: json.loads(value) for key, value in profile_customizations.values.items()})
+        session = Session('t3', 900103)
+        window = Window([SimpleNamespace(tab_id='tab3', sessions=[session])])
+        session.tab = window.tabs[0]
+        session.window = window
+        app.windows.append(window)
+        app.sessions.append(session)
+        return window
+
     async def async_get_fullscreen(self):
         return os.environ.get("NOTCH_CONTROL_FIXTURE_FULLSCREEN") == "1"
 
@@ -195,7 +208,7 @@ class App:
             tabs = [SimpleNamespace(tab_id="tab" + str(index), sessions=[session])
                     for index, session in enumerate(self.sessions)]
         window = Window(tabs)
-        self.windows = [window]
+        self.windows = [] if os.environ.get("NOTCH_CONTROL_FIXTURE_NO_WINDOWS") == "1" else [window]
         for tab in tabs:
             for session in tab.sessions:
                 session.tab = tab
@@ -228,8 +241,17 @@ async def async_get_app(connection):
     return app
 
 
+class DroppingWebsocket:
+    """iTerm2 closing the API connection NOTCH_CONTROL_FIXTURE_CONNECTION_DROP seconds after the helper connects."""
+    async def wait_closed(self):
+        await asyncio.sleep(float(os.environ["NOTCH_CONTROL_FIXTURE_CONNECTION_DROP"]))
+
+
 def run_until_complete(coro, retry=False, debug=False):
-    asyncio.run(coro("fixture_connection"))
+    if os.environ.get("NOTCH_CONTROL_FIXTURE_CONNECTION_DROP"):
+        asyncio.run(coro(SimpleNamespace(websocket=DroppingWebsocket())))
+    else:
+        asyncio.run(coro("fixture_connection"))
 
 class Transaction:
     def __init__(self, connection):

@@ -30,6 +30,7 @@ struct ReportPanel: View {
                     .padding(.horizontal, DesignTokens.content).padding(.bottom, DesignTokens.compact)
                     .help(path)
             }
+            if let key = store.noticeKey { NoticeBanner(store: store, key: key, inset: DesignTokens.content) }
             ReportPage(reader: store.historyTab ? store.history : store.work, store: store, path: path)
                 .id(store.historyTab)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)

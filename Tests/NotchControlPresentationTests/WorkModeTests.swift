@@ -104,8 +104,12 @@ final class WorkModeTests: XCTestCase {
             XCTAssertTrue(store.preferences.alwaysVisible)
         }
 
+        store.prepareITerm = { false }
         store.choose(closedItem)
         XCTAssertEqual(store.noticeKey, "connection_unavailable")
+        store.prepareITerm = { true }
+        store.choose(closedItem)
+        XCTAssertEqual(store.noticeKey, "resume_waiting_connection")
         store.choose(noteItem)
         XCTAssertEqual(store.content, "report")
 
@@ -114,6 +118,13 @@ final class WorkModeTests: XCTestCase {
 
         store.preferences.showsWorkEntries = false
         XCTAssertEqual(store.railRows.map(\.id), ["claude:claude-tab:1", "codex:codex-tab:1"])
+
+        store.iTermTerminated()
+        XCTAssertEqual(store.railRows.map(\.id), [], "No terminal is left once iTerm2 quits")
+        store.preferences.showsWorkEntries = true
+        XCTAssertEqual(store.railRows.map(\.id), ["work:Fechada", "work:Aberta", "work:Revisar PR do time"])
+        guard case .entry(let reopened, .none) = store.railRows[1] else { return XCTFail("Unexpected rows \(store.railRows.map(\.id))") }
+        XCTAssertEqual(reopened.mark, .closed(try XCTUnwrap(ResumeRequest(provider: .claude, conversation: open, directory: "/Users/test/open"))))
     }
 
     /// One session covering several repositories is listed by several entries: the rail shows each session once,

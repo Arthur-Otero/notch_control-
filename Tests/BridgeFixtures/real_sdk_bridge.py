@@ -26,5 +26,6 @@ def screen(session):
 fixture.Screen = screen
 iterm2.async_get_app = fixture.async_get_app
 iterm2.run_until_complete = fixture.run_until_complete
+iterm2.Window.async_create = fixture.Window.async_create
 sys.argv = [str(ROOT / "helper/proof_bridge.py"), "--serve"]
 runpy.run_path(sys.argv[0], run_name="__main__")

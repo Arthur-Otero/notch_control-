@@ -227,6 +227,9 @@ public final class TerminalGateway: ObservableObject {
         send("restore", target: target)
     }
 
+    /// Ends the helper without the shutdown handshake; its termination handler resets the connection state.
+    public func terminateHelper() { process?.terminate() }
+
     public func shutdown(completion: @escaping () -> Void) {
         polling?.invalidate()
         // No helper (iTerm2 never connected): nobody answers `shutdown`, so waiting out the timeout only delays quitting.

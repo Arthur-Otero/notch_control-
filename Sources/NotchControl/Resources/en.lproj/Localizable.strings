@@ -76,6 +76,8 @@
 "choose_session" = "Choose the open session to resume";
 "resume_failed" = "Unable to resume. Check the directory, executable, and integration.";
 "resume_uncertain" = "Resume result is uncertain. Refresh inventory to avoid another tab.";
+"resume_expired" = "The previous resume did not open the session. Click again to retry.";
+"resume_waiting_connection" = "The session resumes as soon as iTerm2 connects.";
 "session_closed" = "This session ended. Choose another session.";
 "integration" = "Integration";
 "hooks" = "Configure agent states";

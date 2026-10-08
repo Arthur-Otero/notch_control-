@@ -116,6 +116,28 @@ private struct StatePill: View {
     }
 }
 
+/// Notice or connection state at the top of a panel; a notice can be dismissed.
+struct NoticeBanner: View {
+    @ObservedObject var store: AppStore
+    let key: String
+    var inset = PanelMetrics.outputInset
+    private var m: Messages { store.messages }
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: "info.circle").font(.system(size: 12)).padding(.top, 1)
+            Text(m.text(key)).font(.system(size: 12)).fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+            if store.noticeKey != nil {
+                Button { store.noticeKey = nil } label: { Image(systemName: "xmark").font(.system(size: 10, weight: .semibold)) }
+                    .buttonStyle(.plain).accessibilityLabel(m.text("dismiss"))
+            }
+        }.foregroundStyle(DesignTokens.muted).padding(.horizontal, 12).padding(.vertical, 8)
+            .background(DesignTokens.surface, in: RoundedRectangle(cornerRadius: DesignTokens.controlRadius + 2))
+            .padding(.horizontal, inset).padding(.top, DesignTokens.compact)
+    }
+}
+
 private struct SessionPanelBody: View {
     @ObservedObject var store: AppStore
     private var m: Messages { store.messages }
@@ -127,7 +149,7 @@ private struct SessionPanelBody: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if let key = bannerKey { banner(key) }
+            if let key = bannerKey { NoticeBanner(store: store, key: key) }
             if store.gateway.embedOnSelect, !store.gateway.dockFailed {
                 Color.clear.frame(maxWidth: .infinity, maxHeight: .infinity)
                     .onTapGesture { store.gateway.focusEmbedded() }
@@ -137,19 +159,6 @@ private struct SessionPanelBody: View {
         }
     }
 
-    private func banner(_ key: String) -> some View {
-        HStack(alignment: .top, spacing: 8) {
-            Image(systemName: "info.circle").font(.system(size: 12)).padding(.top, 1)
-            Text(m.text(key)).font(.system(size: 12)).fixedSize(horizontal: false, vertical: true)
-            Spacer(minLength: 0)
-            if store.noticeKey != nil {
-                Button { store.noticeKey = nil } label: { Image(systemName: "xmark").font(.system(size: 10, weight: .semibold)) }
-                    .buttonStyle(.plain).accessibilityLabel(m.text("dismiss"))
-            }
-        }.foregroundStyle(DesignTokens.muted).padding(.horizontal, 12).padding(.vertical, 8)
-            .background(DesignTokens.surface, in: RoundedRectangle(cornerRadius: DesignTokens.controlRadius + 2))
-            .padding(.horizontal, PanelMetrics.outputInset).padding(.top, DesignTokens.compact)
-    }
 
     private var output: some View {
         TerminalMirror(snapshot: store.gateway.snapshot ?? store.closingSnapshot, enabled: canType, send: store.sendText,
