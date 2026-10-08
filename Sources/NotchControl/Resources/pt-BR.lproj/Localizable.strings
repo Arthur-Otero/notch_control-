@@ -76,6 +76,8 @@
 "choose_session" = "Escolha a sessão aberta para retomar";
 "resume_failed" = "Não foi possível retomar. Verifique diretório, executável e integração.";
 "resume_uncertain" = "Resultado da retomada incerto. Atualize o inventário para evitar outra aba.";
+"resume_expired" = "A retomada anterior não abriu a sessão. Clique de novo para tentar outra vez.";
+"resume_waiting_connection" = "A sessão é retomada assim que o iTerm2 conectar.";
 "session_closed" = "Esta sessão encerrou. Escolha outra bolinha.";
 "integration" = "Integração";
 "hooks" = "Configurar estados dos agentes";

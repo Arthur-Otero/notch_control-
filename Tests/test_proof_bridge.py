@@ -6,6 +6,7 @@ import subprocess
 import sys
 import shlex
 import tempfile
+import time
 import unittest
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -218,6 +219,28 @@ class ProofBridgeBehaviorTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertTrue(any(message.get("requestID") == "close" and message["type"] == "ack" for message in messages))
 
+    def diagnostics_until_exit(self, bridge):
+        codes = []
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline:
+            try:
+                message = bridge.read()
+            except AssertionError:
+                break
+            if message["type"] == "diagnostic":
+                codes.append(message.get("code"))
+        self.assertEqual(bridge.process.wait(timeout=5), 0)
+        return codes
+
+    def test_bridge_exits_when_iterm_closes_the_connection(self):
+        bridge = self.bridge({"NOTCH_CONTROL_FIXTURE_CONNECTION_DROP": "0.5"})
+        self.assertIn("connection_unavailable", self.diagnostics_until_exit(bridge))
+
+    def test_bridge_exits_even_when_cleanup_waits_on_the_gone_iterm(self):
+        bridge = self.bridge({"NOTCH_CONTROL_FIXTURE_CONNECTION_DROP": "1.5", "NOTCH_CONTROL_FIXTURE_CLEANUP_HANG": "1"})
+        self.assertEqual(bridge.request("select", **bridge.target(0, 1))["type"], "ack")
+        self.assertIn("connection_unavailable", self.diagnostics_until_exit(bridge))
+
     def test_history_belongs_to_selected_terminal_and_stale_target_is_rejected(self):
         bridge = self.bridge()
         target = bridge.target(0, 1)
@@ -302,8 +325,22 @@ class ProofBridgeBehaviorTests(unittest.TestCase):
             self.assertEqual(created['profile']['Working Directory'], folder)
             self.assertEqual(created['profile']['Custom Directory'], 'Yes')
             invocation = shlex.split(created['profile']['Command'])
-            self.assertEqual(invocation[:2], ['/bin/zsh', '-lc'])
+            self.assertEqual(invocation[:2], ['/bin/zsh', '-lic'])
             self.assertEqual(shlex.split(invocation[2]), ['cd', '--', folder, '&&', 'exec', str(binary), 'resume', conversation])
+
+    @unittest.skipUnless((ROOT / ".venv/bin/python3").exists(), "SDK real não instalado")
+    def test_resume_without_iterm_window_opens_one(self):
+        with tempfile.TemporaryDirectory(dir=ROOT / '.build') as folder:
+            binary = Path(folder) / 'codex'; binary.write_text('exit 0\n'); binary.chmod(0o700)
+            bridge = Bridge({'PATH': folder + os.pathsep + os.environ.get('PATH', ''), 'NOTCH_CONTROL_FIXTURE_NO_WINDOWS': '1'}, real_screen=True)
+            self.addCleanup(bridge.close)
+            result = bridge.request('resume', connection=bridge.connection,
+                                    resume={'provider': 'codex', 'conversation': '00000000-0000-0000-0000-000000000002', 'directory': folder})
+            self.assertEqual(result['type'], 'ack')
+            self.assertEqual(result['createdTerminal'], 't3')
+            created = next(effect for effect in bridge.effects if effect['method'] == 'create_window')
+            self.assertEqual(shlex.split(created['profile']['Command'])[:2], ['/bin/zsh', '-lic'])
+            self.assertEqual(created['profile']['Working Directory'], folder)
 
     @unittest.skipUnless((ROOT / ".venv/bin/python3").exists(), "SDK real não instalado")
     def test_resume_without_terminal_receipt_keeps_result_ambiguous(self):

@@ -20,6 +20,7 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
     @Published var olderHistory = false
     @Published var noticeKey: String?
     @Published var resumePending = false
+    @Published private(set) var iTermClosed = false
     @Published var choices: [String] = []
     @Published var renameID: String?
     @Published var renameValue = ""
@@ -44,6 +45,17 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
     private var stopping = false
     private var resizeTask: Task<Void, Never>?
     private var resumeTimeout: Task<Void, Never>?
+    private var resumeExpired = false
+    private var queuedResume: ResumeRequest?
+    private var queueTimeout: Task<Void, Never>?
+    private static let iTermBundle = "com.googlecode.iterm2"
+    /// Whether iTerm2 can come up for a queued resume, opening it when closed. Tests replace it to leave iTerm2 alone.
+    var prepareITerm: () -> Bool = {
+        if !NSRunningApplication.runningApplications(withBundleIdentifier: AppStore.iTermBundle).isEmpty { return true }
+        guard let iTerm = NSWorkspace.shared.urlForApplication(withBundleIdentifier: AppStore.iTermBundle) else { return false }
+        NSWorkspace.shared.openApplication(at: iTerm, configuration: NSWorkspace.OpenConfiguration())
+        return true
+    }
     private var createdID: String?
     private var pendingRequest: ResumeRequest?
     private var resumeOrigin: String?
@@ -61,12 +73,14 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
     /// Work entries replace the session list only when the option is on and a work file is chosen.
     var workBoard: WorkBoard? {
         guard preferences.showsWorkEntries, preferences.workPath != nil else { return nil }
-        return WorkBoard(entries: work.document.entries, sessions: registry.sessions)
+        return WorkBoard(entries: work.document.entries, sessions: liveSessions)
     }
+    /// Sessions the rail shows as open: none while iTerm2 is closed, though the registry keeps them for numbering and names.
+    private var liveSessions: [AgentSession] { iTermClosed ? [] : registry.sessions }
     /// Work mode groups open entries, open sessions outside the file, then entries without a terminal, each in file order.
     var railRows: [RailRow] {
-        guard let board = workBoard else { return registry.sessions.map(RailRow.session) }
-        let sessions = Dictionary(registry.sessions.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        guard let board = workBoard else { return liveSessions.map(RailRow.session) }
+        let sessions = Dictionary(liveSessions.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         var open: [RailRow] = [], closed: [RailRow] = []
         for item in board.items {
             if case .open(let id) = item.mark, let session = sessions[id] { open.append(.entry(item, session)) }
@@ -125,7 +139,7 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
             guard let self else { return }
             if let terminal { self.createdID = terminal; self.gateway.refresh() }
             else {
-                self.resumePending = ambiguous; self.noticeKey = ambiguous ? "resume_uncertain" : "resume_failed"
+                self.resumePending = ambiguous; self.notify(ambiguous ? "resume_uncertain" : "resume_failed")
                 if !ambiguous { self.pendingRequest = nil; self.resumeTimeout?.cancel() }
             }
         }
@@ -136,6 +150,7 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
                 return AgentCandidate(terminal: row.identity, provider: provider, project: row.project, name: row.name, conversation: row.conversation)
             }
             self.registry.reconcile(candidates)
+            self.iTermClosed = false
             for session in self.registry.sessions {
                 _ = self.alerts.observe(id: session.id, state: session.state, sequence: session.sequence, kind: .unavailable, baseline: true)
             }
@@ -143,6 +158,7 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
                 self.noticeKey = "session_closed"; self.gateway.closeMirror()
             }
             self.resolvePendingResume()
+            self.runQueuedResume()
             self.save(); self.onLayout?()
         }.store(in: &subscriptions)
         gateway.$connected.dropFirst().sink { [weak self] connected in
@@ -162,10 +178,16 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
         // The helper cannot connect while iTerm2 is closed; reconnect as soon as it opens instead of waiting out the backoff.
         NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didLaunchApplicationNotification).sink { [weak self] note in
             let launched = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
-            guard launched?.bundleIdentifier == "com.googlecode.iterm2", let self, !self.stopping, !self.gateway.connected else { return }
+            guard launched?.bundleIdentifier == AppStore.iTermBundle, let self, !self.stopping, !self.gateway.connected else { return }
             self.retries = 0
             // iTerm2 needs a moment to open its API; a failed first attempt falls back to the normal backoff.
             self.scheduleHelperStart(after: ReconnectPolicy.delay(afterFailures: 1))
+        }.store(in: &subscriptions)
+        // A helper left connected to a quit iTerm2 would keep the app "connected" and block the reconnect above.
+        NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didTerminateApplicationNotification).sink { [weak self] note in
+            let terminated = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
+            guard terminated?.bundleIdentifier == AppStore.iTermBundle, let self, !self.stopping else { return }
+            self.iTermTerminated()
         }.store(in: &subscriptions)
         gateway.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &subscriptions)
         work.$document.dropFirst().sink { [weak self] _ in
@@ -206,6 +228,11 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
         }
     }
     func reconnect() { retries = 0; retry?.cancel(); gateway.refresh(); gateway.start() }
+    /// iTerm2 quit, so none of its terminals is left: entries show as closed, and a click opens iTerm2 and resumes,
+    /// until the first inventory after reconnecting. The helper is ended so the reconnect does not wait on it.
+    func iTermTerminated() {
+        iTermClosed = true; gateway.terminateHelper(); onLayout?()
+    }
     private func scheduleHelperStart(after delay: TimeInterval) {
         retry?.cancel()
         retry = Task { @MainActor [weak self] in
@@ -222,7 +249,7 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
             if let row = registry.sessions.first(where: { $0.id == id }), let terminal = gateway.terminals.first(where: { $0.identity == row.terminal }) {
                 markSeen(id)
                 gateway.reveal(terminal)
-            } else { noticeKey = "session_closed" }
+            } else { notify("session_closed") }
             return
         }
         if content == id { close(); return }
@@ -349,20 +376,64 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
     }
     func copy(_ text: String) { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(text, forType: .string) }
     func resume(_ request: ResumeRequest) {
-        guard !resumePending else { return }
+        guard !resumePending else { reconcileResume(); return }
         switch registry.resumeDecision(request) {
         case .select(let id): choose(id)
         case .choose(let ids): choices = ids
         case .create(let request):
-            guard gateway.connected else { noticeKey = "connection_unavailable"; return }
-            resumePending = true; createdID = nil; pendingRequest = request; resumeOrigin = content; gateway.resume(request)
+            guard gateway.connected else { queueResume(request); return }
+            resumePending = true; resumeExpired = false; createdID = nil; pendingRequest = request; resumeOrigin = content
+            gateway.resume(request)
             resumeTimeout?.cancel()
             resumeTimeout = Task { @MainActor [weak self] in
                 try? await Task.sleep(for: .seconds(15))
                 guard !Task.isCancelled, self?.resumePending == true else { return }
+                self?.resumeExpired = true
                 self?.noticeKey = "resume_uncertain"
             }
         }
+    }
+    /// A click while a resume is unconfirmed looks for its session again instead of opening another tab. Once the
+    /// attempt has expired with no session in the inventory, it is dropped so the next click starts a new one.
+    private func reconcileResume() {
+        guard let pendingRequest else { return }
+        switch registry.resumeConfirmation(pendingRequest, createdTerminalID: createdID) {
+        case .confirmed(let id): finishResume(id)
+        case .choose(let ids): choices = ids; noticeKey = "choose_session"
+        case .waiting where resumeExpired: clearResume(); notify("resume_expired")
+        case .waiting: gateway.refresh(); notify("resume_checking")
+        }
+    }
+    /// Without a connection the click waits for the helper, opening iTerm2 when it is closed; the resume runs on the
+    /// first inventory after connecting, so a session iTerm2 restored is selected instead of duplicated.
+    private func queueResume(_ request: ResumeRequest) {
+        guard prepareITerm() else { notify("connection_unavailable"); return }
+        queuedResume = request; noticeKey = "resume_waiting_connection"
+        queueTimeout?.cancel()
+        queueTimeout = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(20))
+            guard !Task.isCancelled, let self, self.queuedResume != nil else { return }
+            self.queuedResume = nil; self.notify("connection_unavailable")
+        }
+    }
+    /// A session iTerm2 restored is already in this first inventory, before any evidence lets `resumeDecision` see it,
+    /// so it is matched by conversation here to be selected instead of opened again.
+    private func runQueuedResume() {
+        guard let request = queuedResume, gateway.connected else { return }
+        queuedResume = nil; queueTimeout?.cancel()
+        if noticeKey == "resume_waiting_connection" { noticeKey = nil }
+        if let open = registry.sessions.first(where: { $0.provider == request.provider && $0.conversation?.lowercased() == request.conversation }) {
+            choose(open.id)
+        } else { resume(request) }
+    }
+    /// Shows a notice in the panel, opening the work file when the notch is folded, so a click never ends silently.
+    private func notify(_ key: String) {
+        if content == nil { choose("report") }
+        noticeKey = key; onActivate?()
+    }
+    private func clearResume() {
+        resumeTimeout?.cancel(); resumePending = false; resumeExpired = false
+        createdID = nil; pendingRequest = nil; resumeOrigin = nil
     }
     func checkResume() {
         guard resumePending else { return }
@@ -377,7 +448,7 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
         }
     }
     func finishResume(_ id: String, activate: Bool = true) {
-        resumeTimeout?.cancel(); resumePending = false; createdID = nil; pendingRequest = nil; resumeOrigin = nil
+        clearResume()
         if activate {
             if content == id { onActivate?() } else { choose(id) }
         } else { noticeKey = "resume_ready" }
@@ -390,7 +461,7 @@ final class AppStore: NSObject, ObservableObject, UNUserNotificationCenterDelega
         } catch { noticeKey = "login_unavailable" }
     }
     func shutdown(completion: @escaping () -> Void) {
-        stopping = true; retry?.cancel(); resizeTask?.cancel(); resumeTimeout?.cancel()
+        stopping = true; retry?.cancel(); resizeTask?.cancel(); resumeTimeout?.cancel(); queueTimeout?.cancel()
         work.stop(); history.stop(); save(); gateway.shutdown(completion: completion)
     }
     /// Rectangle where the real iTerm2 window sits: the panel minus the header and the resize strip.

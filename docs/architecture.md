@@ -32,7 +32,7 @@ O app inicia o helper com o Python de `.venv`. O transporte principal é um sock
 
 Mensagens carregam versão, conexão, request ID e identidade/geração do destino. Conexões novas exigem reconciliação antes de liberar operações. Comandos têm timeout de dez segundos. Leituras podem ser repetidas; input, resize e criação de abas com resultado incerto não são reenviados automaticamente.
 
-O inventário é atualizado a cada três segundos e os estados são consultados aproximadamente a cada segundo. `ReconnectPolicy` aumenta a espera de dois em dois segundos até trinta, sem limite de tentativas; a abertura do iTerm2 reinicia a tentativa. Essa recuperação não encerra nem reinicia os agentes.
+O inventário é atualizado a cada três segundos e os estados são consultados aproximadamente a cada segundo. `ReconnectPolicy` aumenta a espera de dois em dois segundos até trinta, sem limite de tentativas; a abertura do iTerm2 reinicia a tentativa. Quando o iTerm2 encerra a conexão da API (ao ser fechado, por exemplo), o helper termina em vez de seguir sem iTerm2, e é essa saída que dispara a recuperação. A limpeza dessa saída ainda conversa com o iTerm2; se não terminar em 2 segundos, o helper sai à força. O app também encerra o helper quando o iTerm2 fecha, sem depender de o helper perceber a queda, e até o primeiro inventário depois de reconectar mostra todas as entradas como fechadas, porque nenhum terminal sobrou; o registro continua guardando as sessões para numeração e apelidos. Essa recuperação não encerra nem reinicia os agentes.
 
 ## Identidade e estados
 
@@ -54,7 +54,7 @@ O produto chama `reveal` para trazer a aba correta do iTerm2 à frente. O gatewa
 
 Input exige seleção, conexão e geração válidas; broadcast é suprimido. A restauração experimental compara identidade, layout e dimensões. Modos completos de teclado/colagem e ownership de resize por eventos ainda precisam de validação real. Splits/fullscreen não recebem resize experimental.
 
-Retomada mantém parser e coordenação no núcleo e é acionada pela bolinha de uma entrada fechada no modo do arquivo de trabalho. No leitor, comandos de Markdown continuam texto. Resultado ambíguo de criação exige reconciliação antes de permitir outra tentativa.
+Retomada mantém parser e coordenação no núcleo e é acionada pela bolinha de uma entrada fechada no modo do arquivo de trabalho. A aba nova, ou uma janela nova quando o iTerm2 não tem nenhuma, roda o agente por `/bin/zsh -lic`: o zsh só lê o `.zshrc` em shell interativo, e é nele que costuma ficar o `PATH` (Homebrew etc.) que o agente e os comandos dele herdam. Sem conexão, o clique abre o iTerm2 se ele estiver fechado e guarda o pedido; a retomada roda no primeiro inventário depois de conectar, e uma sessão que o iTerm2 restaurou é selecionada em vez de duplicada. Sem conexão em 20 segundos, o pedido cai e aparece o aviso de conexão. No leitor, comandos de Markdown continuam texto. Resultado ambíguo de criação exige reconciliação antes de permitir outra tentativa: um novo clique procura a sessão no inventário e, passado o prazo de 15 segundos sem ela, libera a próxima tentativa. Falhas e avisos da retomada abrem o painel no arquivo de trabalho quando o notch está recolhido, para que o clique nunca termine em silêncio.
 
 ## Arquivos e dados locais
 

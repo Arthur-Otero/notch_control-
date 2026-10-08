@@ -342,6 +342,7 @@ class ProofBridge:
              lines=[self.line(line, session.grid_size.width) for line in lines])
 
     async def resume(self, request):
+        """Runs the agent through an interactive login zsh, so PATH set in .zshrc reaches it; opens a window when iTerm2 has none."""
         data = request.get("resume")
         if request.get("connection") != self.connection or not isinstance(data, dict):
             raise BridgeError("stale_connection")
@@ -363,15 +364,17 @@ class ProofBridge:
         if not executable:
             raise BridgeError("executable_unavailable")
         app, _ = await self.inventory()
-        if not app.windows:
-            raise BridgeError("iterm_window_required")
         command = "cd -- " + shlex.quote(directory) + " && exec " + " ".join(shlex.quote(value) for value in (executable, *arguments, conversation))
         profile = self.iterm2.LocalWriteOnlyProfile()
         profile.set_initial_directory_mode(self.iterm2.profile.InitialWorkingDirectory.INITIAL_WORKING_DIRECTORY_CUSTOM)
         profile.set_custom_directory(directory)
         profile.set_use_custom_command(self.iterm2.Profile.USE_CUSTOM_COMMAND_ENABLED)
-        profile.set_command("/bin/zsh -lc " + shlex.quote(command))
-        tab = await app.windows[0].async_create_tab(profile_customizations=profile, select=False)
+        profile.set_command("/bin/zsh -lic " + shlex.quote(command))
+        if app.windows:
+            tab = await app.windows[0].async_create_tab(profile_customizations=profile, select=False)
+        else:
+            window = await self.iterm2.Window.async_create(self.api, profile_customizations=profile)
+            tab = window.tabs[0] if window and window.tabs else None
         if not tab or not tab.sessions:
             raise RuntimeError()
         emit("ack", requestID=request.get("requestID"), createdTerminal=tab.sessions[0].session_id)
@@ -782,6 +785,18 @@ class ProofBridge:
             emit("error", requestID=request_id, code="api_operation_failed", ambiguous=kind in ("input", "resize", "resume"))
         return True
 
+    async def watch_connection(self, reader):
+        """Ends the bridge when iTerm2 drops the API connection, so the app restarts the helper and reconnects.
+        The cleanup still talks to the gone iTerm2, so the process exits outright if it has not ended in 2 s."""
+        websocket = getattr(self.api, "websocket", None)
+        if websocket is None:
+            return
+        await websocket.wait_closed()
+        emit("diagnostic", code="connection_unavailable",
+             message="O iTerm2 encerrou a conexão. A integração reconecta quando ele voltar.")
+        reader.feed_eof()
+        asyncio.get_running_loop().call_later(2, os._exit, 0)
+
     async def run(self, peer=None):
         global WIRE_WRITER
         if peer is not None:
@@ -793,6 +808,7 @@ class ProofBridge:
         emit("connected", connection=self.connection, sdk=importlib.metadata.version("iterm2"))
         event_task = asyncio.create_task(self.watch_events())
         status_task = asyncio.create_task(self.watch_status())
+        connection_task = asyncio.create_task(self.watch_connection(reader))
         try:
             while True:
                 line = await reader.readline()
@@ -816,10 +832,13 @@ class ProofBridge:
         finally:
             event_task.cancel()
             status_task.cancel()
+            connection_task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await event_task
             with contextlib.suppress(asyncio.CancelledError):
                 await status_task
+            with contextlib.suppress(asyncio.CancelledError):
+                await connection_task
             try:
                 await self.release_selection()
                 for terminal_id in list(self.resize_records):
