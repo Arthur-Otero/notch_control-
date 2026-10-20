@@ -29,6 +29,7 @@ public enum DesignTokens {
     public static let fontSize: CGFloat = 13
     public static let cellHeight: CGFloat = 18
     public static let tooltipWidth: CGFloat = 300
+    public static let tooltipUsageHeight: CGFloat = 156
     public static let tooltipTail: CGFloat = 14
     public static let flare: CGFloat = 39
     public static let topPadding: CGFloat = 26

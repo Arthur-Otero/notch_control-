@@ -8,6 +8,7 @@ struct SessionDetails: View {
     var item: WorkItem? = nil
     var context: Double? = nil
     let windows: [AccountUsageWindow]
+    var refresh: AccountUsageRefresh? = nil
     let messages: Messages
     var tailOnLeft = false
     var tailY: CGFloat?
@@ -61,7 +62,14 @@ struct SessionDetails: View {
                     LevelBar(usedPercent: context, level: .context(context)).frame(height: 5)
                 }.accessibilityElement(children: .combine)
             }
-            usage
+            if session?.provider == .codex {
+                VStack(alignment: .leading, spacing: DesignTokens.regular) {
+                    usage.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    usageRefresh.frame(height: DesignTokens.cellHeight * 2, alignment: .topLeading)
+                }.frame(height: DesignTokens.tooltipUsageHeight)
+            } else {
+                usage
+            }
             VStack(alignment: .leading, spacing: 3) {
                 if item == nil, let session {
                     Text(session.title).font(.system(size: 12, weight: .medium)).lineLimit(1).truncationMode(.middle)
@@ -70,7 +78,7 @@ struct SessionDetails: View {
                     Text(project).font(.system(size: 11)).lineLimit(1).truncationMode(.middle)
                         .foregroundStyle(DesignTokens.muted)
                 }
-                if session != nil, !windows.isEmpty {
+                if session != nil, !windows.isEmpty || session?.provider == .codex {
                     Text(messages.text("usage_source")).font(.system(size: 10)).foregroundStyle(DesignTokens.muted)
                 }
             }
@@ -105,6 +113,8 @@ struct SessionDetails: View {
         if session == nil {
             Text(messages.text(closed == nil ? "note_hint" : "resume_hint")).font(.system(size: 11)).foregroundStyle(DesignTokens.muted)
                 .fixedSize(horizontal: false, vertical: true)
+        } else if windows.isEmpty, refresh?.loading == true {
+            Text(messages.text("usage_limits")).font(.system(size: 13, weight: .medium))
         } else if windows.isEmpty {
             VStack(alignment: .leading, spacing: DesignTokens.compact) {
                 Text(messages.text("usage_unavailable")).font(.system(size: 13, weight: .medium))
@@ -112,21 +122,53 @@ struct SessionDetails: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
         } else {
-            ForEach(windows) { window in
-                VStack(alignment: .leading, spacing: DesignTokens.compact) {
-                    HStack {
-                        Text(messages.text("usage_" + window.id)).lineLimit(1)
-                        Spacer(minLength: 4)
-                        Text(percent(window.usedPercent) + "% " + messages.text("usage_used"))
-                            .monospacedDigit().foregroundStyle(DesignTokens.muted)
-                    }.font(.system(size: 11))
-                    LevelBar(usedPercent: window.usedPercent, level: .account(window.usedPercent)).frame(height: 5)
-                    if let reset = window.resetHint {
-                        Text(messages.text("usage_resets") + " " + reset)
-                            .font(.system(size: 11)).foregroundStyle(DesignTokens.muted)
-                    }
-                }.accessibilityElement(children: .combine)
+            VStack(alignment: .leading, spacing: DesignTokens.content) {
+                ForEach(windows) { window in
+                    VStack(alignment: .leading, spacing: DesignTokens.compact) {
+                        HStack {
+                            Text(messages.text("usage_" + window.id)).lineLimit(1)
+                            Spacer(minLength: 4)
+                            Text(percent(window.usedPercent) + "% " + messages.text("usage_used"))
+                                .monospacedDigit().foregroundStyle(DesignTokens.muted)
+                        }.font(.system(size: 11))
+                        LevelBar(usedPercent: window.usedPercent, level: .account(window.usedPercent)).frame(height: 5)
+                        if let reset = window.resetHint {
+                            Text(messages.text("usage_resets") + " " + reset)
+                                .font(.system(size: 11)).foregroundStyle(DesignTokens.muted)
+                        }
+                    }.accessibilityElement(children: .combine)
+                }
             }
+        }
+    }
+
+    private var usageRefresh: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            HStack(spacing: DesignTokens.compact) {
+                if refresh?.loading == true {
+                    ProgressView().controlSize(.mini).tint(DesignTokens.muted)
+                        .accessibilityHidden(true)
+                }
+                Text(messages.text(refreshKey)).lineLimit(1)
+            }
+            if let updatedAt = refresh?.updatedAt {
+                Text(messages.usageAge(updatedAt)).lineLimit(1)
+            }
+        }.font(.system(size: 11)).foregroundStyle(DesignTokens.muted)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityElement(children: .combine)
+    }
+
+    private var refreshKey: String {
+        if refresh?.loading == true { return windows.isEmpty ? "usage_loading" : "usage_updating" }
+        switch refresh?.errorCode {
+        case "codex_usage_login_required": return "usage_refresh_login"
+        case "codex_usage_rate_limited": return "usage_refresh_limited"
+        case .some: return "usage_refresh_failed"
+        case nil:
+            if refresh?.isStale() == true { return "usage_previous" }
+            if refresh?.updatedAt != nil { return "usage_cached" }
+            return windows.isEmpty ? "usage_refresh_failed" : "usage_footer"
         }
     }
 }

@@ -50,3 +50,10 @@ class AccountUsageTests(unittest.TestCase):
         self.assertEqual(tracker.update({**terminal, 'generation': 'second'}, [], 302), [])
         tracker.retain([])
         self.assertEqual(tracker.update(terminal, [], 303), [])
+
+    def test_authoritative_usage_does_not_extend_api_freshness(self):
+        tracker = UsageTracker()
+        terminal = {'id': 'one', 'generation': 'first'}
+        windows = [{'id': 'five_hour', 'usedPercent': 30, 'resetHint': None}]
+        self.assertEqual(tracker.update(terminal, windows, 100, authoritative=True), windows)
+        self.assertEqual(tracker.update(terminal, [], 101, authoritative=True), [])
