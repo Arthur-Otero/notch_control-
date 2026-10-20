@@ -14,6 +14,14 @@ extension NotchVisibility {
 
 struct Messages {
     let language: InterfaceLanguage
+    func usageAge(_ timestamp: Double, now: Date = .now) -> String {
+        let minutes = max(0, Int((now.timeIntervalSince1970 - timestamp) / 60))
+        if minutes < 1 { return text("usage_updated_now") }
+        if minutes < 60 { return String(format: text("usage_updated_minutes"), minutes) }
+        if minutes < 1440 { return String(format: text("usage_updated_hours"), minutes / 60) }
+        return String(format: text("usage_updated_days"), minutes / 1440)
+    }
+
     func text(_ key: String) -> String {
         let name = language == .portuguese ? "pt-BR" : "en"
         let resources = Bundle.main.resourceURL.flatMap { Bundle(url: $0.appendingPathComponent("NotchControl_NotchControl.bundle")) } ?? Bundle.module

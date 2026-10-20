@@ -139,9 +139,25 @@
 
 "usage_unavailable" = "Usage unavailable";
 
-"usage_missing_hint" = "The CLI is not reporting account limits.";
+"usage_missing_hint" = "Account limits are currently unavailable.";
 
-"usage_source" = "Account usage · reported by CLI";
+"usage_source" = "Account usage · reported by the provider";
+"usage_limits" = "Account limits";
+"usage_loading" = "Checking limits…";
+"usage_updating" = "Updating…";
+"usage_cached" = "Cached reading";
+"usage_previous" = "Previous reading · cache expired";
+"usage_footer" = "Limits reported by the CLI";
+"usage_refresh_login" = "Renew your Codex login.";
+"usage_refresh_limited" = "Wait before checking again.";
+"usage_refresh_failed" = "Could not update usage.";
+"usage_updated_now" = "Last checked just now";
+"usage_updated_minutes" = "Last checked %d min ago";
+"usage_updated_hours" = "Last checked %d h ago";
+"usage_updated_days" = "Last checked %d days ago";
+"codex_usage_login_required" = "Codex: renew your CLI login to read account limits.";
+"codex_usage_rate_limited" = "Codex: usage requests are temporarily limited. Retrying automatically.";
+"codex_usage_unavailable" = "Codex: account usage is unavailable. Retrying automatically.";
 
 "usage_used" = "used";
 

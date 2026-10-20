@@ -63,6 +63,7 @@ components:
     backgroundColor: "{colors.background}"
   tooltip:
     width: "300px"
+    usageHeight: "156px"
     backgroundColor: "{colors.notch}"
     textColor: "{colors.notchInk}"
   notchRail:
@@ -146,6 +147,8 @@ Curvas e faixas pretas são áreas de arraste, sem ícones permanentes. A pílul
 `RailView`, `SessionButton`, `SessionDetails`, `WindowCoordinator`, `ReportPanel` e `SettingsView` compartilham tokens e catálogos. Pickers, diálogos de arquivo, campos, scrollbars e seleção são nativos. Erros e estados vazio/carregando ocupam regiões estáveis, com instrução e recuperação localizada.
 
 O balão tem 300 pt, incluindo ponta de 14 pt voltada à sessão. Apresenta provedor, estado, limites disponíveis, nome e projeto. Barras de limite usam `activity` abaixo de 50%, `warning` abaixo de 80% e `danger` a partir de 80%; percentuais aparecem também em texto. Uso ausente tem mensagem própria; a duração de uma janela só é informada quando a fonte a fornece.
+
+Os limites são de conta, informados pelo provedor: no Codex, a consulta da conta tem prioridade sobre o rodapé; nos demais, vale o rodapé. A mensagem de indisponibilidade não atribui a ausência a uma fonte específica. Renovações do Codex aparecem como dia/mês e hora local em ambos os idiomas, no mesmo componente existente. O balão do Codex reserva `usageHeight` (156 pt) para limites e feedback: “Consultando limites…” na primeira requisição, “Atualizando…” nas seguintes, idade da última leitura e erro localizado. O carregamento usa spinner nativo, sem percentuais de progresso. Leituras com cache vencido são identificadas como anteriores. A área e a linha de origem mantêm a altura entre carregamento, dados e falha. A consulta acontece somente enquanto esse balão estiver visível, com cache de dois minutos por conta; hover, foco e menu de detalhes têm o mesmo comportamento.
 
 O hover aguarda 400 ms e detalhes equivalentes podem ser abertos pelo foco/menu de contexto. Renomear e mover antes/depois são ações do menu da bolinha. Fechar painel está disponível no documento, botão, `⌘W` e gesto da borda interna.
 

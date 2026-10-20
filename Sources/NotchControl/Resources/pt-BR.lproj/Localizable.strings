@@ -139,9 +139,25 @@
 
 "usage_unavailable" = "Uso indisponível";
 
-"usage_missing_hint" = "O CLI não está informando os limites da conta.";
+"usage_missing_hint" = "Os limites da conta não estão disponíveis no momento.";
 
-"usage_source" = "Uso da conta · informado pelo CLI";
+"usage_source" = "Uso da conta · informado pelo provedor";
+"usage_limits" = "Limites da conta";
+"usage_loading" = "Consultando limites…";
+"usage_updating" = "Atualizando…";
+"usage_cached" = "Leitura em cache";
+"usage_previous" = "Leitura anterior · cache expirado";
+"usage_footer" = "Limites informados pelo CLI";
+"usage_refresh_login" = "Renove o login do Codex.";
+"usage_refresh_limited" = "Aguarde para consultar novamente.";
+"usage_refresh_failed" = "Não foi possível atualizar.";
+"usage_updated_now" = "Última leitura agora";
+"usage_updated_minutes" = "Última leitura há %d min";
+"usage_updated_hours" = "Última leitura há %d h";
+"usage_updated_days" = "Última leitura há %d dias";
+"codex_usage_login_required" = "Codex: renove o login no CLI para consultar os limites.";
+"codex_usage_rate_limited" = "Codex: consulta de uso temporariamente limitada. Nova tentativa automática.";
+"codex_usage_unavailable" = "Codex: uso da conta indisponível. Nova tentativa automática.";
 
 "usage_used" = "utilizado";
 

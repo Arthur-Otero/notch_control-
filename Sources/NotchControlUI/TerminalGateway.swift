@@ -57,6 +57,7 @@ private struct ProofCommand: Encodable {
 public final class TerminalGateway: ObservableObject {
     @Published public private(set) var terminals: [TerminalDescriptor] = []
     @Published public private(set) var accountUsage: [String: AccountUsageReading] = [:]
+    @Published public private(set) var usageTerminal: TerminalIdentity?
     @Published public private(set) var contextUsage: [String: ContextUsageReading] = [:]
     @Published public private(set) var selectedID: String?
     @Published public private(set) var snapshot: TerminalSnapshot?
@@ -168,6 +169,24 @@ public final class TerminalGateway: ObservableObject {
     }
 
     public func refresh() { send("inventory") }
+
+    public func setUsageVisibility(_ terminal: TerminalIdentity?) {
+        let target = terminal.flatMap { identity in
+            connected && terminals.contains { $0.identity == identity && $0.provider == "codex" && $0.local && $0.identityConfirmed }
+                ? identity : nil
+        }
+        guard target != usageTerminal else { return }
+        usageTerminal = target
+        if let target {
+            let previous = accountUsage[target.id].flatMap { $0.terminal == target ? $0 : nil }
+            let refresh = previous?.refresh
+            accountUsage[target.id] = AccountUsageReading(connection: session.connection ?? "", terminal: target,
+                windows: previous?.windows ?? [], refresh: AccountUsageRefresh(
+                    loading: refresh?.loading == true || (refresh?.errorCode == nil && (refresh?.updatedAt == nil || refresh?.isStale() == true)),
+                    updatedAt: refresh?.updatedAt, errorCode: refresh?.errorCode))
+        }
+        send("usage_visibility", terminal: target)
+    }
     public func loadOlderHistory() {
         guard historyHasMore, let before = historyFirstLine, let target = try? session.prepareInput("") else { return }
         send("history", target: target, before: before)
@@ -267,6 +286,7 @@ public final class TerminalGateway: ObservableObject {
         docked = false
         terminals = []
         accountUsage = [:]
+        usageTerminal = nil
         contextUsage = [:]
         history = []
         historyHasMore = false
@@ -392,6 +412,9 @@ public final class TerminalGateway: ObservableObject {
             guard let connection = message.connection, let terminals = message.terminals else { return }
             session.reconcile(connection: connection, terminals: terminals.map(\.identity))
             self.terminals = terminals
+            if let usageTerminal, !terminals.contains(where: { $0.identity == usageTerminal && $0.provider == "codex" && $0.local && $0.identityConfirmed }) {
+                setUsageVisibility(nil)
+            }
             accountUsage = accountUsage.filter { _, reading in terminals.contains { $0.identity == reading.terminal } }
             contextUsage = contextUsage.filter { _, reading in terminals.contains { $0.identity == reading.terminal } }
             if session.selected?.id != selectedID {
@@ -406,6 +429,7 @@ public final class TerminalGateway: ObservableObject {
             status = "Tela conectada. Estado do agente: desconhecido."
         case "diagnostic", "error":
             let code = message.code ?? "integration_unavailable"
+            if code.hasPrefix("codex_usage_") { record(code); return }
             statusCode = code
             if operation == "dock" {
                 docked = false

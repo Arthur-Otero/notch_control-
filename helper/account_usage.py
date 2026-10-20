@@ -66,12 +66,16 @@ class UsageTracker:
         self.published = {}
         self.sent_at = {}
 
-    def update(self, identity, windows, now):
+    def current(self, identity, windows, now):
         key = (identity['id'], identity['generation'])
         if windows:
             self.readings[key] = (windows, now)
         previous = self.readings.get(key)
-        current = previous[0] if previous and now - previous[1] < 300 else []
+        return previous[0] if previous and now - previous[1] < 300 else []
+
+    def update(self, identity, windows, now, authoritative=False):
+        key = (identity['id'], identity['generation'])
+        current = windows if authoritative else self.current(identity, windows, now)
         if self.published.get(key) == current and now - self.sent_at.get(key, 0) < 5:
             return None
         self.published[key] = current

@@ -11,7 +11,7 @@ Inspirado no [CodeNotch, de vinzdg](https://github.com/vinzdg/codenotch), especi
 - Descoberta de agentes abertos normalmente em abas do iTerm2.
 - Uma bolinha por sessão, com o logo do provedor e indicação de trabalho, resultado ou decisão pendente.
 - Clique na bolinha para abrir a aba correspondente no iTerm2.
-- Balão com nome, projeto, estado e limites de uso quando o rodapé do CLI fornece essa informação.
+- Balão com nome, projeto, estado e limites de uso: consulta da conta no Codex, rodapé do CLI no Claude Code e Cursor Agent.
 - Barra fina abaixo da bolinha com o contexto ocupado pela sessão, quando o rodapé o informa.
 - Notch nas bordas esquerda ou direita, com posição, monitor, aliases e ordem das sessões persistidos.
 - Painel de Markdown somente leitura, com abas de trabalho e histórico, seleção, cópia e atualização automática.
@@ -88,6 +88,14 @@ O pin no topo mantém o notch aberto e tem prioridade sobre a visibilidade; vem 
 | Sempre recolhido | Vira a pílula assim que o mouse sai, mesmo com sessões trabalhando ou pedindo decisão. |
 
 Recolhido, o notch é a pílula, e a seta dela fica vermelha ou verde enquanto houver sessão pedindo decisão ou trabalhando; passar o mouse ou clicar nela mostra as bolinhas. Em Preferências, os alertas de decisão pendente e de trabalho concluído podem abrir o notch recolhido até o mouse sair ou ligar o pin (sem o pin no notch, só abrem). A seta na lateral interna do notch abre uma coluna com o título de cada bolinha (o título da entrada do arquivo de trabalho ou o da aba, com o projeto); clicar no título faz o mesmo que clicar na bolinha. Arraste a área preta para mover o notch pela lateral, trocar de borda ou de monitor. O clique secundário abre Preferências. O menu de contexto de cada bolinha permite renomear e mudar a ordem da sessão. Preferências também oferece posição e monitor como alternativas ao arraste.
+
+### Limites de uso do Codex
+
+O uso é da conta e pode ser compartilhado por várias sessões. A consulta HTTPS só começa quando o balão de limites de uma sessão Codex está visível, por hover, foco ou menu de detalhes. Abrir o notch sem abrir o balão não consulta a conta. O cache dura dois minutos e é compartilhado pelas sessões que usam o mesmo login; reabrir um balão durante esse prazo não faz outra requisição. Se o balão permanecer aberto, uma leitura vencida é atualizada. Ao fechar, não começam novas consultas; uma requisição já iniciada pode terminar e alimentar o cache.
+
+O balão mostra “Consultando limites…” na primeira leitura e “Atualizando…” nas seguintes, com a idade da última leitura e as renovações das janelas de 5 horas e semanal. Em caso de falha, conserva a última leitura identificada pela sua idade e informa o erro; ela não é apresentada como atual nem convertida em 0%. Limite de requisições impõe uma espera adicional de pelo menos cinco minutos, inclusive se você fechar e reabrir o balão.
+
+O helper lê o `auth.json` do `CODEX_HOME` (ou `HOME/.codex`) do processo, sem renovar tokens nem alterar arquivos. Se o login expirar, use o fluxo normal de login do Codex. Se trocar a conta com o CLI aberto, abra uma nova instância para associar a consulta à nova conta. O endpoint do ChatGPT é interno e pode mudar. A barra de contexto e os estados dos agentes continuam sendo lidos do terminal, independentemente do balão.
 
 ### Ler arquivos Markdown
 
@@ -172,7 +180,7 @@ Também é possível executar:
 ```
 
 - **Nenhuma sessão aparece:** confirme que o CLI está em uma aba local do iTerm2, que a API está habilitada e que o helper foi autorizado.
-- **Uso indisponível no balão:** o formato do rodapé pode não fornecer limites reconhecíveis. O app não estima uma porcentagem. No Claude Code, a statusline precisa escrever `5h 42%` e `7d 13%` ou, para incluir a renovação, `18:00 42%` e `13/10 13%` no começo da linha ou logo depois de `·` ou `|`.
+- **Uso indisponível no balão:** no Codex, abra o balão para consultar a conta; o cache vale dois minutos e o indicador mostra a consulta em andamento ou uma falha. O login ChatGPT em arquivo precisa estar válido. API key, Keychain ou ambiente do processo inacessível usam apenas a alternativa do rodapé. O app não renova o login nem estima percentuais. No Claude Code e Cursor Agent, o rodapé ainda precisa fornecer limites reconhecíveis. No Claude Code, a statusline precisa escrever `5h 42%` e `7d 13%` ou, para incluir a renovação, `18:00 42%` e `13/10 13%` no começo da linha ou logo depois de `·` ou `|`.
 - **Sem barra de contexto na bolinha:** o app lê o contexto do rodapé do CLI e não estima: se o rodapé não o informa, não há barra. O Codex já escreve `Context 14% used` ou `86% context left` e funciona sem ajuste. O Claude Code mostra o que a sua statusline escrever, em qualquer destes formatos:
 
   | Formato na statusline | Lido como |
@@ -202,7 +210,7 @@ Diagnósticos locais ficam em `.proof/diagnostics.jsonl`; preferências, aliases
 ## Limitações e próximos passos
 
 - Suporte inicial a sessões locais no iTerm2; outros terminais, terminal integrado do Cursor IDE e SSH não estão contemplados.
-- Classificação de estado e limites depende do formato da tela de cada versão do CLI. Listas muito longas de agentes em segundo plano podem esconder o compositor.
+- Classificação de estado, contexto e limites lidos do rodapé dependem do formato da tela de cada versão do CLI. Listas muito longas de agentes em segundo plano podem esconder o compositor. A consulta de uso do Codex independe do compositor e depende do endpoint interno do ChatGPT e de login em arquivo; não há renovação de OAuth pelo app.
 - Validação completa de associação entre múltiplas sessões, hooks, foco, VoiceOver, Spaces e monitores ainda está pendente.
 - O terminal interativo dentro do painel permanece como experimento no harness; o fluxo atual abre a sessão no iTerm2.
 - No modo do arquivo de trabalho, uma sessão de Codex ou Cursor Agent aberta sem `resume` só é ligada à entrada pelos hooks. O registro de sessões do Claude Code é um formato interno e pode mudar entre versões.
@@ -213,5 +221,7 @@ Diagnósticos locais ficam em `.proof/diagnostics.jsonl`; preferências, aliases
 O [CodeNotch](https://github.com/vinzdg/codenotch), de **vinzdg**, inspirou o produto e a geometria do notch lateral. Sua licença MIT está preservada nos recursos do aplicativo.
 
 Os logos dos provedores vêm de [Lobe Icons](https://github.com/lobehub/lobe-icons). A integração usa a [Python API do iTerm2](https://iterm2.com/python-api/).
+
+A consulta dos limites de conta do Codex foi inspirada no [ai-usagebar, de akitaonrails](https://github.com/akitaonrails/ai-usagebar), com implementação própria em Python e credenciais somente leitura.
 
 As dependências e respectivas atribuições estão em [docs/THIRD_PARTY_NOTICES.md](docs/THIRD_PARTY_NOTICES.md).

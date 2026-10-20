@@ -162,6 +162,7 @@ final class WindowCoordinator {
         case .divider, nil: (session, item) = (nil, nil)
         }
         guard !store.draggingRail, session != nil || item != nil else {
+            store.gateway.setUsageVisibility(nil)
             tooltip?.orderOut(nil)
             return
         }
@@ -172,12 +173,14 @@ final class WindowCoordinator {
         panel.hidesOnDeactivate = false; panel.isReleasedWhenClosed = false; panel.hasShadow = false
         panel.isOpaque = false; panel.backgroundColor = .clear
         panel.ignoresMouseEvents = true
-        let windows = session.flatMap { session in
-            store.gateway.accountUsage[session.terminal.id].flatMap { $0.terminal == session.terminal ? $0.windows : nil }
-        } ?? []
+        store.gateway.setUsageVisibility(session?.provider == .codex ? session?.terminal : nil)
+        let reading = session.flatMap { session in
+            store.gateway.accountUsage[session.terminal.id].flatMap { $0.terminal == session.terminal ? $0 : nil }
+        }
         let left = store.preferences.edge == .left
         let host = NSHostingView(rootView: SessionDetails(session: session, item: item, context: session.flatMap(store.contextPercent),
-                                                          windows: windows, messages: store.messages, tailOnLeft: left))
+                                                          windows: reading?.windows ?? [], refresh: reading?.refresh,
+                                                          messages: store.messages, tailOnLeft: left))
         let height = min(host.fittingSize.height, area.height)
         let width = DesignTokens.tooltipWidth
         let y = min(max(area.minY, tooltipAnchor.y - height / 2), area.maxY - height)

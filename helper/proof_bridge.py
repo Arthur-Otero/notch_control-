@@ -16,6 +16,7 @@ import uuid
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from agent_detect import CLAUDE, detect_provider
 from conversation_id import from_claude_registry, from_command_line
+from codex_usage import CodexUsage
 
 PROTOCOL = 1
 PROTOCOL_OUTPUT = sys.stdout
@@ -96,6 +97,8 @@ class ProofBridge:
         self.screen_retry = None
         self.embedded = None
         self.status_seen = {}
+        self.codex_usage = CodexUsage(lambda code: emit('diagnostic', code=code))
+        self.usage_terminal = None
 
     async def inventory(self, max_age=0.0):
         """Inventário completo; `max_age` reaproveita uma leitura recente (usado fora de caminhos de entrada)."""
@@ -278,6 +281,7 @@ class ProofBridge:
         from account_usage import read_usage, UsageTracker
         from context_usage import read_context
         usage = UsageTracker()
+        codex_footer = UsageTracker()
         # The tracker keeps lists, so a context reading travels as a one-item list.
         contexts = UsageTracker()
         await self.inventory_ready.wait()
@@ -296,9 +300,23 @@ class ProofBridge:
                         continue
                     previous = self.status_seen.get(identity)
                     text = await self.screen_text(session)
-                    windows = usage.update(row["identity"], read_usage(text, row["provider"]), time.monotonic())
+                    observed = read_usage(text, row["provider"])
+                    is_codex = row['provider'] == 'codex'
+                    refresh = None
+                    if is_codex:
+                        fallback = codex_footer.current(row['identity'], observed, time.monotonic())
+                        if self.usage_terminal == row['identity']:
+                            reading = await self.codex_usage.reading(row, visible=lambda: self.usage_terminal == row['identity'])
+                            if reading is not None:
+                                observed = reading['windows'] or fallback
+                                refresh = reading['refresh']
+                    windows = (usage.update(row["identity"], observed, time.monotonic(), authoritative=is_codex)
+                               if not is_codex or refresh is not None else None)
                     if windows is not None:
-                        emit("usage", connection=self.connection, terminal=row["identity"], windows=windows)
+                        emit("usage", connection=self.connection, terminal=row["identity"], windows=windows,
+                             **({'refresh': refresh} if refresh is not None else {}))
+                    elif refresh is not None:
+                        emit('usage', connection=self.connection, terminal=row['identity'], windows=observed, refresh=refresh)
                     context = read_context(text, row["provider"])
                     context = contexts.update(row["identity"], [] if context is None else [context], time.monotonic())
                     if context is not None:
@@ -315,6 +333,10 @@ class ProofBridge:
                          baseline=previous is None)
                 self.status_seen = {key: value for key, value in self.status_seen.items() if key in live}
                 usage.retain([row["identity"] for row in rows if row["identity"]["id"] in live])
+                codex_footer.retain([row['identity'] for row in rows if row['identity']['id'] in live])
+                self.codex_usage.retain(rows)
+                if self.usage_terminal not in [row['identity'] for row in rows]:
+                    self.usage_terminal = None
                 contexts.retain([row["identity"] for row in rows if row["identity"]["id"] in live])
             except asyncio.CancelledError:
                 return
@@ -699,6 +721,18 @@ class ProofBridge:
                 _, rows = await self.inventory()
                 emit("inventory", requestID=request_id, connection=self.connection, terminals=rows)
                 self.inventory_ready.set()
+            elif kind == 'usage_visibility':
+                if request.get('connection') != self.connection:
+                    raise BridgeError('stale_connection')
+                terminal = request.get('terminal')
+                if terminal is not None:
+                    _, rows = await self.inventory()
+                    matches = [row for row in rows if row['identity'] == terminal and row.get('provider') == 'codex'
+                               and row.get('local') and row.get('identityConfirmed')]
+                    if len(matches) != 1:
+                        raise BridgeError('stale_terminal')
+                self.usage_terminal = terminal
+                emit('ack', requestID=request_id)
             elif kind == "history":
                 await self.history(request)
             elif kind == "resume":
@@ -837,6 +871,7 @@ class ProofBridge:
                 await event_task
             with contextlib.suppress(asyncio.CancelledError):
                 await status_task
+            await self.codex_usage.close()
             with contextlib.suppress(asyncio.CancelledError):
                 await connection_task
             try:

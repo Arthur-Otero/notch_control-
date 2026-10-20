@@ -25,6 +25,7 @@ flowchart LR
     Gateway <--> Helper[Helper Python local]
     Helper <--> iTerm[iTerm2 Python API]
     Helper --> Screen[Estado e limites pela tela]
+    Helper --> Codex[Uso da conta Codex via HTTPS]
     Screen --> Core
 ```
 
@@ -44,9 +45,19 @@ O inventário também traz a conversa de cada instância (`conversation_id.py`).
 
 No modo do arquivo de trabalho, `ReportDocument.entries` separa o `work.md` por `##`, e `WorkBoard` compõe as entradas com as sessões abertas por provedor e conversa. Cada entrada resolve para uma sessão: a aberta mais recente, a retomada da mais recente quando nenhuma está aberta, ou uma nota sem sessão. Uma sessão pode cobrir vários repositórios, então entradas que resolvem para a mesma sessão, pelo ID da sessão aberta ou pela conversa a retomar, formam um único `WorkItem`: a primeira na ordem do arquivo o representa e as demais ficam em `others`. Assim cada sessão, aberta ou fechada, é uma só bolinha. Notas não se juntam. Sessões abertas que nenhum item mostra ficam à parte, para que uma decisão pendente nunca fique escondida, inclusive uma segunda aba da mesma conversa.
 
-`screen_status.py` lê o compositor de Claude Code, Codex e Cursor Agent. `account_usage.py` extrai somente limites reconhecidos no rodapé, e `context_usage.py`, do mesmo rodapé, o contexto ocupado pela sessão. Ausência de informação não vira sucesso, aprovação ou percentual inventado. O comportamento visual dos estados está em [status.md](status.md).
+`screen_status.py` lê o compositor de Claude Code, Codex e Cursor Agent. `account_usage.py` extrai somente limites reconhecidos no rodapé, e `context_usage.py`, do mesmo rodapé, o contexto ocupado pela sessão. Para os limites da conta Codex, `codex_usage.py` consulta `GET https://chatgpt.com/backend-api/wham/usage`, inspirado no ai-usagebar. A API tem prioridade sobre o rodapé; Claude Code, Cursor Agent e contexto continuam com suas fontes atuais. Ausência de informação não vira sucesso, aprovação ou percentual inventado. O comportamento visual dos estados está em [status.md](status.md).
 
-O uso pertence à conta e pode ser compartilhado por várias sessões. Mensagens de uso validam terminal/geração, IDs e percentuais entre 0 e 100. Leituras expiram em cinco minutos e não são persistidas.
+O uso pertence à conta e pode ser compartilhado por várias sessões. Mensagens de uso validam conexão, terminal/geração, IDs e percentuais entre 0 e 100. Leituras do rodapé expiram em cinco minutos. O cache da API do Codex vale dois minutos; leituras anteriores só aparecem acompanhadas de sua idade e do estado da atualização. Esses dados não são persistidos.
+
+No Codex, o helper lê apenas `HOME` e `CODEX_HOME` do ambiente do processo via `KERN_PROCARGS2` do macOS, conferindo o início do PID antes e depois da leitura da credencial. Sem identidade local confirmada, ambiente acessível, caminho absoluto ou `tokens.account_id`, não consulta a API e mantém a alternativa do rodapé. Nunca usa o ambiente do próprio helper para escolher uma conta. A primeira conta comprovada fica associada à geração da sessão; trocar a conta no arquivo não reassocia uma sessão já aberta. Credenciais são relidas a cada cinco segundos, permitindo acompanhar a rotação do access token pelo próprio CLI. Somente login ChatGPT em arquivo é suportado nesta etapa; API key e Keychain ficam com o rodapé.
+
+A aplicação envia `usage_visibility` ao mostrar ou ocultar o balão de uma sessão Codex. O helper valida a conexão, a geração e a associação única a uma sessão local confirmada; o comando não seleciona o terminal nem envia input. Enquanto o balão estiver fechado, `watch_status` continua lendo contexto, estado e rodapé, mas não resolve credenciais nem inicia requisições de uso. Fechar durante a leitura de credenciais impede a consulta; uma requisição de rede já iniciada pode terminar e preencher o cache. Sessões do arquivo de trabalho seguem o mesmo caminho, pela identidade da sessão aberta.
+
+Consultas são compartilhadas por caminho de credencial/conta e rodam em tarefa separada, com cache de 120 segundos contado da resposta, timeout de rede de oito segundos e resposta limitada a 128 KiB. Ao abrir o balão com cache válido, não há outra consulta; se continuar visível depois do vencimento, ocorre nova consulta. HTTP 429 impõe espera mínima de 300 segundos (até uma hora para `Retry-After` numérico); outros erros aguardam pelo menos 120 segundos. Uma credencial nova do CLI pode recuperar a autenticação, mas não elimina a espera de HTTP 429. Redirecionamentos são recusados para não reenviar o Bearer. Chaves de cache usam hashes; tokens e dados de uso ficam somente em memória e desaparecem com as sessões. Não há refresh OAuth nem escrita em arquivos do Codex.
+
+Mensagens de uso do Codex incluem `refresh` com `loading`, `updatedAt` em segundos Unix e `errorCode` opcional de uma lista permitida. O gateway valida esses campos junto com a identidade. O balão mostra atividade da consulta, idade da última leitura e falhas sem mover seus elementos. Erros de uso não alteram o estado da conexão iTerm2. Claude Code e Cursor Agent continuam enviando uso sem essa metadata. Diagnósticos incluem somente códigos sanitizados.
+
+As janelas são identificadas por `limit_window_seconds` (18000 e 604800), nunca pela posição de `primary_window` ou `secondary_window`. O percentual vem de `used_percent`; a renovação vem de `reset_at` ou `reset_after_seconds`, exibida como dia/mês e hora local. Janelas vencidas são removidas sem inferir 0%. Em falha, a última leitura da mesma conta pode continuar no balão, com a idade original e o erro explícito. Sem dados da API, vale a alternativa do rodapé por até cinco minutos. Code review, créditos e limites adicionais por modelo não são exibidos nesta etapa.
 
 ## Operações de terminal
 

@@ -22,6 +22,7 @@ for name, value in colors:
 for name, key in [('railWidth', 'components.notchRail.width'), ('iconSize', 'components.sessionIcon.width'), ('pillWidth', 'components.notchPill.width'), ('pillHeight', 'components.notchPill.height'), ('notchRadius', 'rounded.notch'), ('controlRadius', 'rounded.control'), ('compact', 'spacing.compact'), ('regular', 'spacing.regular'), ('content', 'spacing.content'), ('fontSize', 'typography.sans.fontSize'), ('cellHeight', 'typography.mono.lineHeight')]:
     text += f'    public static let {name}: CGFloat = {numbers[key]}\n'
 text += f'    public static let tooltipWidth: CGFloat = {numbers["components.tooltip.width"]}\n'
+text += f'    public static let tooltipUsageHeight: CGFloat = {numbers["components.tooltip.usageHeight"]}\n'
 text += f'    public static let tooltipTail: CGFloat = {numbers["spacing.tooltipTail"]}\n'
 for name in ['flare', 'topPadding', 'bottomPadding', 'cellSpacing', 'trackStroke', 'activityStroke', 'glyphSize']:
     text += f'    public static let {name}: CGFloat = {numbers["spacing.notch" + name[0].upper() + name[1:]]}\n'

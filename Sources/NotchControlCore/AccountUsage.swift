@@ -48,8 +48,38 @@ public struct AccountUsageReading: Decodable, Equatable, Sendable {
     public let connection: String
     public let terminal: TerminalIdentity
     public let windows: [AccountUsageWindow]
+    public let refresh: AccountUsageRefresh?
+
+    public init(connection: String, terminal: TerminalIdentity, windows: [AccountUsageWindow], refresh: AccountUsageRefresh? = nil) {
+        self.connection = connection
+        self.terminal = terminal
+        self.windows = windows
+        self.refresh = refresh
+    }
 
     public var isValid: Bool {
         windows.count <= 4 && windows.allSatisfy(\.isValid) && Set(windows.map(\.id)).count == windows.count
+            && (refresh?.isValid ?? true)
+    }
+}
+
+public struct AccountUsageRefresh: Decodable, Equatable, Sendable {
+    public let loading: Bool
+    public let updatedAt: Double?
+    public let errorCode: String?
+
+    public init(loading: Bool = false, updatedAt: Double? = nil, errorCode: String? = nil) {
+        self.loading = loading
+        self.updatedAt = updatedAt
+        self.errorCode = errorCode
+    }
+
+    public func isStale(at date: Date = .now) -> Bool {
+        updatedAt.map { date.timeIntervalSince1970 - $0 >= 120 } ?? false
+    }
+
+    public var isValid: Bool {
+        (updatedAt.map { $0.isFinite && $0 > 0 && $0 <= Date.distantFuture.timeIntervalSince1970 } ?? true)
+            && (errorCode.map { ["codex_usage_unavailable", "codex_usage_login_required", "codex_usage_rate_limited"].contains($0) } ?? true)
     }
 }
