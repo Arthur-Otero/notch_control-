@@ -79,6 +79,8 @@ Passe o mouse sobre o notch para expandir. Clique na bolinha de uma sessão para
 
 O resultado é considerado visto quando você clica na bolinha ou quando o iTerm2 está em primeiro plano com essa aba ativa. Abrir a aba não apaga uma aprovação que continua pendente. O comportamento detalhado está em [docs/status.md](docs/status.md).
 
+No Codex, mensagens intermediárias podem esconder o indicador de atividade por um instante. O app mantém a sessão trabalhando e só anuncia a conclusão quando encontra `Worked for` no fim da resposta, junto ao prompt.
+
 O pin no topo mantém o notch aberto e tem prioridade sobre a visibilidade; vem ligado por padrão, e um clique o solta ou o liga de novo. Com o pin solto, vale a **visibilidade do notch**, escolhida em **Preferências → Posição → Visibilidade do notch**. Para tirar o pin do notch, desligue **Preferências → Posição → Mostrar o pin no notch**: sem ele, só a visibilidade vale, e o estado do pin é guardado para quando voltar.
 
 | Visibilidade | Comportamento |

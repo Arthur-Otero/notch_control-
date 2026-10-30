@@ -322,7 +322,7 @@ class ProofBridge:
                     if context is not None:
                         emit("context", connection=self.connection, terminal=row["identity"],
                              usedPercent=context[0] if context else None)
-                    found = present(classify(text, row["provider"]), previous, identity == focused)
+                    found = present(classify(text, row["provider"]), previous, identity == focused, provider=row["provider"])
                     if found is None:
                         continue
                     self.status_seen[identity] = found
