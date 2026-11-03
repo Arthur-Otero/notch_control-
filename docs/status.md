@@ -62,7 +62,7 @@ O Cursor Agent não escreve nada quando o turno termina. O verde de resultado ve
 
 ## Quando fica verde parado
 
-O turno acabou e o compositor só espera outro prompt. A tela traz algo como `Worked for`, `Brewed for`, `Churned for` ou `· done`, ou o agente saiu de "executando" / de um `!` e voltou ao prompt.
+O turno acabou e o compositor só espera outro prompt. A tela traz algo como `Worked for`, `Brewed for`, `Churned for` ou `· done`, ou o agente saiu de "executando" / de um `!` e voltou ao prompt. No Codex, essa volta aparente ao prompt precisa do marcador de conclusão descrito abaixo.
 
 O anel verde parado permanece até uma destas coisas:
 
@@ -100,7 +100,11 @@ Hooks de Claude e Codex, se forem instalados, também podem marcar execução, c
 
 ## Codex
 
-O parser localiza o compositor e examina a região anterior. `esc to interrupt` continua indicando trabalho quando barras extras o empurram para fora das últimas linhas. Um marcador mais recente de fim de turno prevalece sobre atividade antiga.
+O parser localiza o compositor e examina a região anterior. `esc to interrupt` continua indicando trabalho quando barras extras o empurram para fora das últimas linhas ou quando a linha de atividade quebra, inclusive no meio do atalho. A leitura não exige que a bolinha `•` esteja na mesma linha do atalho.
+
+Ao escrever uma mensagem intermediária, o Codex pode esconder temporariamente o indicador de atividade. Isso não conclui o turno: uma sessão que já estava trabalhando continua assim, sem som nem notificação de conclusão, mesmo com a aba em foco. Um `Worked for` antigo, com conteúdo novo depois dele, também não prova conclusão.
+
+O resultado só é publicado quando `Worked for` está no fim da resposta, imediatamente antes do compositor; réguas horizontais entre os dois são aceitas. Esse marcador prevalece sobre atividade antiga. Sem compositor reconhecido ou marcador final, o app não deduz conclusão da ausência do indicador. Layouts que não exibam esse marcador podem manter a indicação de trabalho até a próxima evidência reconhecida.
 
 ## Limitações
 

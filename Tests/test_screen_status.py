@@ -1,6 +1,9 @@
+import asyncio
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 import unittest
+from unittest.mock import AsyncMock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "helper"))
 from screen_status import classify, present
@@ -275,10 +278,6 @@ class CursorAgentScreenTests(unittest.TestCase):
         self.assertIsNone(cursor("just a shell", "$"))
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
 class CodexScreenTests(unittest.TestCase):
     def test_approval_options_are_not_the_composer(self):
         self.assertEqual(classify(screen('Would you like to run the following command?',
@@ -304,13 +303,98 @@ class CodexScreenTests(unittest.TestCase):
         self.assertEqual(classify(screen('• Working (12s • esc to interrupt)',
             *(['  background terminal job'] * 20), '› Ask Codex to do anything', 'GPT-6'), 'codex'), ('working', None))
 
+    def test_wrapped_thinking_indicator_does_not_publish_completion(self):
+        for indicator in [
+            ['• Working (1s • esc to interrupt)'],
+            ['• Checking the next implementation step', '  (12s • esc to interrupt)'],
+            ['• Checking the next step (12s • esc to', '  interrupt)'],
+            ['• Checking the next step (12s •', '  esc to interrupt)'],
+            ['• Checking the next step (12s • esc', '  to interrupt)'],
+        ]:
+            with self.subTest(indicator=indicator):
+                frame = screen('─ Worked for 8s ─────────', 'Previous response',
+                    *indicator, RULE, '› Ask Codex to do anything', 'GPT-6')
+                found = classify(frame, 'codex')
+                self.assertIsNone(present(found, ('working', None), focused=False))
+                self.assertEqual(found, ('working', None))
+
+    def test_mention_of_interrupt_shortcut_in_response_is_not_activity(self):
+        self.assertEqual(classify(screen('─ Worked for 8s ─────────',
+            '• You can use esc to interrupt the next turn.', RULE,
+            '› Ask Codex to do anything', 'GPT-6'), 'codex'), ('idle', None))
+
+    def test_idle_frame_during_active_turn_preserves_activity_even_when_focused(self):
+        for previous in [('working', None), ('waiting', 'approval')]:
+            for focused in [False, True]:
+                with self.subTest(previous=previous, focused=focused):
+                    self.assertIsNone(present(('idle', None), previous, focused, provider='codex'))
+        self.assertEqual(present(('idle', None), None, False, provider='codex'), ('idle', None))
+
+    def test_worked_for_before_new_output_is_not_completion(self):
+        found = classify(screen('Worked for 8s', 'Previous response',
+            '• Intermediate message still growing', RULE,
+            '› Ask Codex to do anything', 'GPT-6'), 'codex')
+        self.assertEqual(found, ('idle', None))
+        self.assertIsNone(present(found, ('working', None), False, provider='codex'))
+
     def test_finished_turn_ignores_older_running_marker(self):
-        self.assertEqual(classify(screen(
-            '• Working (12s • esc to interrupt)', 'tool output',
-            '─ Worked for 14s ─────────', 'Finished response', RULE,
-            '› Ask Codex to do anything', 'GPT-6 · 5h 67% left'), 'codex'), ('idle', 'result'))
+        for indicator in [
+            ['• Working (12s • esc to interrupt)'],
+            ['• Checking the next step (12s • esc to', '  interrupt)'],
+        ]:
+            with self.subTest(indicator=indicator):
+                found = classify(screen(*indicator, 'tool output',
+                    'Finished response', '─ Worked for 14s ─────────', RULE,
+                    '› Ask Codex to do anything', 'GPT-6 · 5h 67% left'), 'codex')
+                self.assertEqual(found, ('idle', 'result'))
+                self.assertEqual(present(found, ('working', None), focused=False), ('idle', 'result'))
+                self.assertIsNone(present(found, ('idle', 'result'), focused=False))
 
     def test_idle_composer_and_unknown_screen(self):
         self.assertEqual(classify('› Ask Codex to do anything\nGPT-6', 'codex'), ('idle', None))
         self.assertIsNone(classify('streaming output without the composer', 'codex'))
         self.assertIsNone(classify(screen('› previous prompt', *(['streaming output'] * 20)), 'codex'))
+
+
+class CodexStatusPublishingTests(unittest.IsolatedAsyncioTestCase):
+    async def test_intermediate_messages_do_not_emit_completion_and_final_footer_emits_once(self):
+        from proof_bridge import ProofBridge
+
+        bridge = ProofBridge(None, None)
+        self.addAsyncCleanup(bridge.codex_usage.close)
+        bridge.inventory_ready.set()
+        identity = {'id': 'one', 'generation': 'first'}
+        row = {'identity': identity, 'provider': 'codex', 'local': True, 'identityConfirmed': True}
+        app = SimpleNamespace(get_session_by_id=lambda _: object())
+        bridge.inventory = AsyncMock(return_value=(app, [row]))
+        bridge.focused_session = lambda _: None
+        footer = ['› Ask Codex to do anything', 'GPT-6 · Context 14% used']
+        frames = [
+            screen('Worked for 8s', 'Previous response', '• Working (1s • esc to interrupt)', *footer),
+            screen('Worked for 8s', 'Previous response', '• Intermediate message', *footer),
+            screen('Worked for 8s', 'Previous response', '• Intermediate message still growing', *footer),
+            screen('• Intermediate message without the old marker visible', *footer),
+            screen('• Working (3s • esc to interrupt)', *footer),
+            screen('• Final response', 'Worked for 4s', *footer),
+            screen('• Final response', 'Worked for 4s', *footer),
+        ]
+        bridge.screen_text = AsyncMock(side_effect=frames)
+
+        async def advance(_):
+            if bridge.screen_text.call_count == len(frames):
+                raise asyncio.CancelledError
+
+        with patch('proof_bridge.emit') as emit, patch('proof_bridge.asyncio.sleep', side_effect=advance):
+            with self.assertRaises(asyncio.CancelledError):
+                await bridge.watch_status()
+        events = [call.kwargs for call in emit.call_args_list if call.args == ('evidence',)]
+        self.assertEqual([event['kind'] for event in events], ['working', 'completed'])
+        self.assertTrue(events[0]['baseline'])
+        self.assertFalse(events[1]['baseline'])
+        self.assertEqual(events[1]['reason'], 'result')
+        self.assertTrue(all(event['terminal'] == identity for event in events))
+        self.assertEqual(bridge.status_seen['one'], ('idle', 'result'))
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -52,6 +52,7 @@ _CURSOR_ALLOW = re.compile(r"\((?:y|b)\)[\s│]*$")
 _CURSOR_REFUSE = re.compile(r"\((?:esc or n(?: or p)?|n|p(?: or esc)?)\)[\s│]*$", re.IGNORECASE)
 _CURSOR_QUESTION = re.compile(r"Question \d+ of \d+")
 _CURSOR_QUESTION_HINTS = ("esc to skip", "space select", "enter next/submit")
+_CODEX_INTERRUPT = re.compile(r"(?:^|[•·]\s*)esc to interrupt\)?$", re.IGNORECASE)
 
 
 def _claude_composer(lines):
@@ -145,11 +146,14 @@ def _classify_codex(lines):
     """Read activity above the last composer, including wrapped drafts and extended status bars."""
     composer = _codex_composer(lines)
     if composer is None:
-        return _classify_tail(lines)
-    for line in reversed(lines[:composer]):
+        found = _classify_tail(lines)
+        return found if found and found[0] != "idle" else None
+    for index in range(composer - 1, -1, -1):
+        line = lines[index]
         if re.search(r"(?:^|[─•·]\s*)Worked for \d", line, re.IGNORECASE):
-            return "idle", "result"
-        if line.startswith("•") and "esc to interrupt" in line.lower():
+            finished = all(_RULE.fullmatch(line) for line in lines[index + 1:composer])
+            return "idle", "result" if finished else None
+        if _CODEX_INTERRUPT.search(" ".join(lines[max(0, index - 2):index + 1])):
             return "working", None
     return "idle", None
 
@@ -177,12 +181,14 @@ def classify(text, provider=None):
     return found or _classify_tail(lines)
 
 
-def present(found, previous, focused):
+def present(found, previous, focused, provider=None):
     """What to publish. A finished turn stays green until that terminal is the open tab."""
     if found is None:
         return None
     kind, reason = found
     if kind == "idle":
+        if provider == "codex" and reason != "result" and previous and previous[0] in ("working", "waiting"):
+            return None
         if focused:
             reason = None
         elif previous and previous[0] in ("working", "waiting"):
